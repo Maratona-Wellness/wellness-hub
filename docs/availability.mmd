@@ -1,0 +1,54 @@
+%% Availability bounded context - sequence diagrams for REST endpoints
+
+sequenceDiagram
+    title POST /availability/generate (Gerar slots) - Tenant Admin
+    actor TA as TenantAdmin
+    participant C as AvailabilityRestController
+    participant S as AvailabilityApplicationService
+    participant AP as AuthzPolicy
+    participant PP as AvailabilityPolicy
+    participant GP as SlotGenerationPort
+    participant EB as EventBus
+    TA->>C: POST { programId, locationId, therapistIds?, dateRange }
+    C->>S: generate(request, auth)
+    S->>AP: ensureTenantAdmin(auth, programId/locationId)
+    alt autorizado
+      S->>PP: validateNoOverlap(dateRange, program window)
+      alt ok
+        S->>GP: generate(program, location, therapistIds, dateRange)
+        GP-->>S: slotsCreated
+        S->>EB: publish AvailabilityGenerated(programId, locationId)
+        S-->>C: 202 Accepted (summary)
+      else conflito
+        S-->>C: 409 Conflict
+      end
+    else 403
+      S-->>C: 403
+    end
+
+sequenceDiagram
+    title GET /availability (Listar slots disponíveis)
+    actor U as User
+    participant C as AvailabilityRestController
+    participant S as AvailabilityApplicationService
+    participant RP as SlotReadPort
+    participant AP as AuthzPolicy
+    U->>C: GET ?date&programId&locationId&therapistId
+    C->>S: list(filters, auth)
+    S->>AP: resolveTenantScope(auth)
+    AP-->>S: tenantId
+    S->>RP: findAvailable(tenantId, filters)
+    RP-->>S: slots[]
+    S-->>C: 200 OK (SlotDTO[])
+
+sequenceDiagram
+    title GET /availability/therapists (Ver disponibilidade por terapeuta)
+    actor T as Therapist
+    participant C as AvailabilityRestController
+    participant S as AvailabilityApplicationService
+    participant RP as SlotReadPort
+    T->>C: GET ?dateRange
+    C->>S: listByTherapist(auth, dateRange)
+    S->>RP: findByTherapist(therapistId, dateRange)
+    RP-->>S: slots[]
+    S-->>C: 200 OK (SlotDTO[])

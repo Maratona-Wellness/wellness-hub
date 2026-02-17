@@ -1,0 +1,104 @@
+%% Programs bounded context - sequence diagrams for REST endpoints
+
+sequenceDiagram
+    title POST /programs (Criar programa) - Tenant Admin
+    actor TA as TenantAdmin
+    participant C as ProgramsRestController
+    participant S as ProgramsApplicationService
+    participant AP as AuthzPolicy
+    participant VP as ProgramValidationService
+    participant WP as ProgramWritePort
+    participant EB as EventBus
+    TA->>C: POST ProgramCreateRequest
+    C->>S: create(dto, auth)
+    S->>AP: ensureTenantAdmin(auth, dto.tenantId)
+    alt autorizado
+      S->>VP: validateWindowAndCapacity(dto.dayStart, dayEnd, duration, capacity)
+      alt válido
+        S->>WP: save(newProgram)
+        WP-->>S: program
+        S->>EB: publish ProgramCreated(programId, tenantId)
+        S-->>C: 201 Created (ProgramDTO)
+      else inválido
+        S-->>C: 400 (regras)
+      end
+    else 403
+      S-->>C: 403
+    end
+
+sequenceDiagram
+    title GET /programs (Listar programas do tenant)
+    actor U as User
+    participant C as ProgramsRestController
+    participant S as ProgramsApplicationService
+    participant RP as ProgramReadPort
+    participant AP as AuthzPolicy
+    U->>C: GET (auth)
+    C->>S: list(auth, filters)
+    S->>AP: resolveTenantScope(auth)
+    AP-->>S: tenantId
+    S->>RP: findByTenant(tenantId, filters)
+    RP-->>S: page<Program>
+    S-->>C: 200 OK (ProgramSummaryDTO[])
+
+sequenceDiagram
+    title GET /programs/{id} (Detalhe)
+    actor U as User
+    participant C as ProgramsRestController
+    participant S as ProgramsApplicationService
+    participant RP as ProgramReadPort
+    U->>C: GET id
+    C->>S: getById(id, auth)
+    S->>RP: findById(id)
+    RP-->>S: program(tenantId)
+    S-->>C: 200 OK (ProgramDTO)
+
+sequenceDiagram
+    title PATCH /programs/{id} (Atualizar) - Tenant Admin
+    actor TA as TenantAdmin
+    participant C as ProgramsRestController
+    participant S as ProgramsApplicationService
+    participant RP as ProgramReadPort
+    participant AP as AuthzPolicy
+    participant VP as ProgramValidationService
+    participant WP as ProgramWritePort
+    TA->>C: PATCH id, ProgramUpdateRequest
+    C->>S: update(id, dto, auth)
+    S->>RP: findById(id)
+    RP-->>S: program(tenantId)
+    S->>AP: ensureTenantAdmin(auth, program.tenantId)
+    alt autorizado
+      S->>VP: validateWindowAndCapacity(dto)
+      alt válido
+        S->>WP: update(id, dto)
+        WP-->>S: program
+        S-->>C: 200 OK (ProgramDTO)
+      else inválido
+        S-->>C: 400
+      end
+    else 403
+      S-->>C: 403
+    end
+
+sequenceDiagram
+    title PATCH /programs/{id}/status (Ativar/Inativar) - Tenant Admin
+    actor TA as TenantAdmin
+    participant C as ProgramsRestController
+    participant S as ProgramsApplicationService
+    participant RP as ProgramReadPort
+    participant AP as AuthzPolicy
+    participant WP as ProgramWritePort
+    participant EB as EventBus
+    TA->>C: PATCH id { active }
+    C->>S: updateStatus(id, active, auth)
+    S->>RP: findById(id)
+    RP-->>S: program(tenantId)
+    S->>AP: ensureTenantAdmin(auth, program.tenantId)
+    alt autorizado
+      S->>WP: setActive(id, active)
+      WP-->>S: program
+      S->>EB: publish ProgramStatusChanged(id, active)
+      S-->>C: 200 OK (ProgramDTO)
+    else 403
+      S-->>C: 403
+    end

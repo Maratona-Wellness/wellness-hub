@@ -1,0 +1,158 @@
+erDiagram
+  TENANT ||--o{ LOCATION : has
+  TENANT ||--o{ PROGRAM : offers
+  TENANT ||--o{ EMPLOYEE : employs
+  TENANT ||--o{ THERAPIST_ASSIGNMENT : contracts
+  TENANT ||--o{ APPOINTMENT : scopes
+  TENANT ||--o{ MAGIC_TOKEN : owns
+
+  USER_ACCOUNT ||--o{ USER_ROLE : has
+  ROLE ||--o{ USER_ROLE : includes
+  USER_ACCOUNT ||--o| THERAPIST : may_link
+  USER_ACCOUNT ||--o| EMPLOYEE : may_link
+
+  THERAPIST ||--o{ THERAPIST_ASSIGNMENT : linked
+  LOCATION ||--o{ THERAPIST_ASSIGNMENT : scoped
+  PROGRAM ||--o{ AVAILABILITY_SLOT : schedules
+  LOCATION ||--o{ AVAILABILITY_SLOT : hosts
+  THERAPIST ||--o{ AVAILABILITY_SLOT : provides
+  EMPLOYEE ||--o{ APPOINTMENT : books
+  THERAPIST ||--o{ APPOINTMENT : attends
+  AVAILABILITY_SLOT ||--o{ APPOINTMENT : reserves
+
+  TENANT {
+    uuid id PK
+    string name
+    string domain UNIQUE
+    string logo_url
+    boolean active
+    datetime created_at
+    datetime updated_at
+  }
+
+  LOCATION {
+    uuid id PK
+    uuid tenant_id FK
+    string name
+    string address
+    datetime created_at
+    datetime updated_at
+  }
+
+  PROGRAM {
+    uuid id PK
+    uuid tenant_id FK
+    string name
+    int session_duration_minutes
+    time day_start
+    time day_end
+    int daily_capacity_per_location
+    boolean active
+    datetime created_at
+    datetime updated_at
+  }
+
+  EMPLOYEE {
+    uuid id PK
+    uuid tenant_id FK
+    string email UNIQUE
+    string name
+    boolean active
+    datetime created_at
+    datetime updated_at
+  }
+
+  THERAPIST {
+    uuid id PK
+    string email UNIQUE
+    string name
+    string cpf UNIQUE
+    string specialties
+    boolean active
+    datetime created_at
+    datetime updated_at
+  }
+
+  THERAPIST_ASSIGNMENT {
+    uuid id PK
+    uuid tenant_id FK
+    uuid therapist_id FK
+    uuid location_id FK
+    boolean active
+    datetime created_at
+    datetime updated_at
+  }
+
+  AVAILABILITY_SLOT {
+    uuid id PK
+    uuid tenant_id FK
+    uuid location_id FK
+    uuid therapist_id FK
+    uuid program_id FK
+    date slot_date
+    time start_time
+    time end_time
+    int capacity
+    int reserved
+    datetime created_at
+    datetime updated_at
+  }
+
+  APPOINTMENT {
+    uuid id PK
+    uuid tenant_id FK
+    uuid employee_id FK
+    uuid therapist_id FK
+    uuid location_id FK
+    uuid program_id FK
+    uuid slot_id FK
+    datetime start_at
+    datetime end_at
+    string status  // PENDING, CONFIRMED, CANCELLED, COMPLETED, NO_SHOW
+    string code UNIQUE
+    datetime created_at
+    datetime updated_at
+  }
+
+  MAGIC_TOKEN {
+    uuid id PK
+    uuid tenant_id FK
+    string email
+    string token_hash UNIQUE
+    datetime expires_at
+    boolean used
+    datetime created_at
+  }
+
+  USER_ACCOUNT {
+    uuid id PK
+    string email UNIQUE
+    string password_hash
+    string display_name
+    boolean active
+    datetime last_login_at
+    datetime created_at
+    datetime updated_at
+  }
+
+  ROLE {
+    uuid id PK
+    string name UNIQUE // EMPLOYEE, THERAPIST, TENANT_ADMIN, SUPER_ADMIN
+  }
+
+  USER_ROLE {
+    uuid id PK
+    uuid user_id FK
+    uuid role_id FK
+    uuid tenant_id FK // nullable for SUPER_ADMIN
+  }
+
+  AUTH_LOG {
+    uuid id PK
+    uuid user_id FK
+    string method // MAGIC_LINK, PASSWORD
+    string outcome // SUCCESS, FAILURE
+    string reason
+    string ip
+    datetime created_at
+  }

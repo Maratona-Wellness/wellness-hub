@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Maratona QV - Wellness Hub
 
-## Getting Started
+Plataforma SaaS multi-tenant para agendamento de serviços de bem-estar corporativo.
 
-First, run the development server:
+## 🎯 Visão Geral
+
+O Wellness Hub permite que empresas (tenants) ofereçam aos seus colaboradores acesso a serviços como:
+
+- Quick Massage
+- Auriculoterapia
+- Ginástica Laboral
+- Outros programas de bem-estar
+
+## 🏗️ Arquitetura
+
+- **Framework**: Next.js 14+ (App Router)
+- **Linguagem**: TypeScript 5.3
+- **Database**: PostgreSQL 15+
+- **ORM**: Prisma 5.10
+- **Autenticação**: NextAuth.js 4.24
+- **Estilização**: Tailwind CSS 3.4
+
+Para detalhes arquiteturais, consulte a pasta [docs/architecture](./docs/architecture/).
+
+## 📋 Pré-requisitos
+
+- Node.js 18+
+- PostgreSQL 15+
+- npm ou yarn
+
+## 🚀 Instalação
 
 ```bash
+# Clone o repositório
+git clone <repo-url>
+cd wellness-hub
+
+# Instale as dependências
+npm install
+
+# Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o .env com suas configurações
+
+# Execute as migrations do banco
+npm run db:push
+
+# Popule o banco com dados de teste
+npm run db:seed
+
+# Inicie o servidor de desenvolvimento
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔧 Variáveis de Ambiente
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/wellness_hub"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="sua-chave-secreta-aqui"
+SMTP_HOST="smtp.exemplo.com"
+SMTP_PORT=587
+SMTP_USER="seu-email"
+SMTP_PASS="sua-senha"
+SMTP_FROM="noreply@maratonaqv.com.br"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🧪 Credenciais de Teste
 
-## Learn More
+Após executar o seed, use:
 
-To learn more about Next.js, take a look at the following resources:
+| Role         | Email                    | Senha       |
+| ------------ | ------------------------ | ----------- |
+| Super Admin  | admin@maratonaqv.com.br  | password123 |
+| Tenant Admin | admin@demo.com           | password123 |
+| Terapeuta    | maria.terapeuta@demo.com | password123 |
+| Terapeuta    | joao.terapeuta@demo.com  | password123 |
+| Colaborador  | funcionario1@demo.com    | password123 |
+| Colaborador  | funcionario2@demo.com    | password123 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Estrutura do Projeto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/                    # App Router (pages e API routes)
+│   ├── (auth)/             # Páginas de autenticação
+│   ├── (dashboard)/        # Páginas do dashboard
+│   └── api/                # API Routes
+├── components/             # Componentes React
+│   ├── ui/                 # Design System (Atomic Design)
+│   ├── layouts/            # Layouts reutilizáveis
+│   └── dashboards/         # Dashboards por role
+├── lib/                    # Utilitários e configurações
+│   ├── auth.ts             # Configuração NextAuth
+│   ├── prisma.ts           # Cliente Prisma
+│   ├── email.ts            # Envio de emails
+│   └── utils.ts            # Funções utilitárias
+└── types/                  # Tipos TypeScript
+```
 
-## Deploy on Vercel
+## 👥 Roles de Usuário
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Role         | Descrição           | Acesso                                            |
+| ------------ | ------------------- | ------------------------------------------------- |
+| EMPLOYEE     | Colaborador         | Agendar e gerenciar próprios agendamentos         |
+| THERAPIST    | Terapeuta           | Ver agenda, confirmar check-ins                   |
+| TENANT_ADMIN | Admin da empresa    | Gerenciar usuários, programas, locais, relatórios |
+| SUPER_ADMIN  | Admin da plataforma | Gerenciar todos os tenants                        |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📝 Scripts Disponíveis
+
+```bash
+npm run dev          # Servidor de desenvolvimento
+npm run build        # Build de produção
+npm run start        # Inicia servidor de produção
+npm run lint         # Linting
+npm run db:generate  # Gera cliente Prisma
+npm run db:push      # Push schema para o banco
+npm run db:migrate   # Cria migration
+npm run db:seed      # Popula banco com dados de teste
+npm run db:studio    # Abre Prisma Studio
+```
+
+## 🔒 Segurança
+
+- Senhas hasheadas com bcrypt (12 rounds)
+- Sessões JWT com expiração de 30 minutos
+- Isolamento de dados por tenant
+- Validação de domínio de email no cadastro
+- Proteção CSRF built-in
+
+## 📄 Licença
+
+Proprietary - Maratona Qualidade de Vida

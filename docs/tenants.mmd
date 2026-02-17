@@ -1,0 +1,71 @@
+%% Tenants bounded context - sequence diagrams for REST endpoints
+
+sequenceDiagram
+    title POST /tenants/resolve-domain (Descobrir tenant por domínio)
+    actor S as System(Client App)
+    participant C as TenantsRestController
+    participant Svc as TenantsApplicationService
+    participant RP as TenantReadPort
+    S->>C: POST { email }
+    C->>Svc: resolveByEmail(email)
+    Svc->>RP: findByDomain(domainFrom(email))
+    alt encontrado e ativo
+      RP-->>Svc: tenant
+      Svc-->>C: 200 OK (tenantId, name, logo)
+    else não encontrado/inativo
+      Svc-->>C: 404/403
+    end
+
+sequenceDiagram
+    title GET /tenants (Listar tenants) - Super Admin
+    actor A as SuperAdmin
+    participant C as TenantsRestController
+    participant Svc as TenantsApplicationService
+    participant RP as TenantReadPort
+    A->>C: GET (auth super admin)
+    C->>Svc: listTenants(filters,pagination)
+    Svc->>RP: search(filters,pagination)
+    RP-->>Svc: page<Tenant>
+    Svc-->>C: 200 OK (TenantSummaryDTO[])
+
+sequenceDiagram
+    title GET /tenants/{id} (Detalhes) - Super Admin
+    actor A as SuperAdmin
+    participant C as TenantsRestController
+    participant Svc as TenantsApplicationService
+    participant RP as TenantReadPort
+    A->>C: GET id
+    C->>Svc: getTenant(id)
+    Svc->>RP: findById(id)
+    alt encontrado
+      RP-->>Svc: tenant
+      Svc-->>C: 200 OK (TenantDetailDTO)
+    else não encontrado
+      Svc-->>C: 404
+    end
+
+sequenceDiagram
+    title POST /tenants (Criar tenant) - Super Admin
+    actor A as SuperAdmin
+    participant C as TenantsRestController
+    participant Svc as TenantsApplicationService
+    participant WP as TenantWritePort
+    participant EB as EventBus
+    A->>C: POST TenantCreateRequest
+    C->>Svc: createTenant(dto)
+    Svc->>WP: save(newTenant)
+    WP-->>Svc: tenant
+    Svc->>EB: publish TenantCreated(tenantId)
+    Svc-->>C: 201 Created (TenantDetailDTO)
+
+sequenceDiagram
+    title PATCH /tenants/{id}/status (Ativar/Inativar) - Super Admin
+    actor A as SuperAdmin
+    participant C as TenantsRestController
+    participant Svc as TenantsApplicationService
+    participant WP as TenantWritePort
+    A->>C: PATCH { active:true/false }
+    C->>Svc: updateStatus(id, active)
+    Svc->>WP: setActive(id, active)
+    WP-->>Svc: tenant
+    Svc-->>C: 200 OK (TenantDetailDTO)

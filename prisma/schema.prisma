@@ -1,0 +1,339 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum RoleType {
+  EMPLOYEE
+  THERAPIST
+  TENANT_ADMIN
+  SUPER_ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum AuthMethod {
+  MAGIC_LINK
+  PASSWORD
+}
+
+enum AuthOutcome {
+  SUCCESS
+  FAILURE
+}
+
+// ============================================================================
+// TENANT & ORGANIZATION
+// ============================================================================
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  domain    String   @unique
+  logoUrl   String?  @map("logo_url")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  locations            Location[]
+  programs             Program[]
+  employees            Employee[]
+  therapistAssignments TherapistAssignment[]
+  availabilitySlots    AvailabilitySlot[]
+  appointments         Appointment[]
+  magicTokens          MagicToken[]
+  userRoles            UserRole[]
+
+  @@index([domain])
+  @@index([active])
+  @@map("tenants")
+}
+
+model Location {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  address   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  therapistAssignments TherapistAssignment[]
+  availabilitySlots    AvailabilitySlot[]
+  appointments         Appointment[]
+
+  @@index([tenantId])
+  @@map("locations")
+}
+
+model Program {
+  id                        String   @id @default(uuid()) @db.Uuid
+  tenantId                  String   @map("tenant_id") @db.Uuid
+  name                      String
+  sessionDurationMinutes    Int      @map("session_duration_minutes")
+  dayStart                  String   @map("day_start") // Stored as HH:MM format
+  dayEnd                    String   @map("day_end") // Stored as HH:MM format
+  dailyCapacityPerLocation  Int      @map("daily_capacity_per_location")
+  active                    Boolean  @default(true)
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  availabilitySlots AvailabilitySlot[]
+  appointments      Appointment[]
+
+  @@index([tenantId])
+  @@index([active])
+  @@map("programs")
+}
+
+// ============================================================================
+// USER ACCOUNTS & AUTHENTICATION
+// ============================================================================
+
+model UserAccount {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String?   @map("password_hash")
+  displayName  String    @map("display_name")
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  userRoles UserRole[]
+  therapist Therapist?
+  employee  Employee?
+  authLogs  AuthLog[]
+
+  @@index([email])
+  @@index([active])
+  @@map("user_accounts")
+}
+
+model Role {
+  id        String     @id @default(uuid()) @db.Uuid
+  roleName  RoleType   @unique @map("role_name")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  // Relations
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  tenantId  String?  @map("tenant_id") @db.Uuid // Nullable for SUPER_ADMIN
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user   UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenant Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+  @@map("user_roles")
+}
+
+// ============================================================================
+// EMPLOYEES & THERAPISTS
+// ============================================================================
+
+model Employee {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String?  @unique @map("user_id") @db.Uuid
+  email     String   @unique
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         UserAccount?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([active])
+  @@map("employees")
+}
+
+model Therapist {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @unique @map("user_id") @db.Uuid
+  email       String   @unique
+  name        String
+  cpf         String   @unique
+  specialties String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user                 UserAccount?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  therapistAssignments TherapistAssignment[]
+  availabilitySlots    AvailabilitySlot[]
+  appointments         Appointment[]
+
+  @@index([email])
+  @@index([cpf])
+  @@index([active])
+  @@map("therapists")
+}
+
+model TherapistAssignment {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  therapistId String   @map("therapist_id") @db.Uuid
+  locationId  String   @map("location_id") @db.Uuid
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  location  Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([therapistId, tenantId, locationId])
+  @@index([tenantId])
+  @@index([therapistId])
+  @@index([locationId])
+  @@index([active])
+  @@map("therapist_assignments")
+}
+
+// ============================================================================
+// AVAILABILITY & APPOINTMENTS
+// ============================================================================
+
+model AvailabilitySlot {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  locationId  String   @map("location_id") @db.Uuid
+  therapistId String   @map("therapist_id") @db.Uuid
+  programId   String   @map("program_id") @db.Uuid
+  slotDate    DateTime @map("slot_date") @db.Date
+  startTime   String   @map("start_time") // Stored as HH:MM format
+  endTime     String   @map("end_time") // Stored as HH:MM format
+  capacity    Int      @default(1)
+  reserved    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location     Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  therapist    Therapist     @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  program      Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([therapistId, locationId, programId, slotDate, startTime])
+  @@index([tenantId])
+  @@index([locationId])
+  @@index([therapistId])
+  @@index([programId])
+  @@index([slotDate])
+  @@map("availability_slots")
+}
+
+model Appointment {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @map("tenant_id") @db.Uuid
+  employeeId  String            @map("employee_id") @db.Uuid
+  therapistId String            @map("therapist_id") @db.Uuid
+  locationId  String            @map("location_id") @db.Uuid
+  programId   String            @map("program_id") @db.Uuid
+  slotId      String            @map("slot_id") @db.Uuid
+  startAt     DateTime          @map("start_at")
+  endAt       DateTime          @map("end_at")
+  status      AppointmentStatus @default(PENDING)
+  code        String            @unique
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee  Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  therapist Therapist        @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  location  Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  program   Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  slot      AvailabilitySlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([therapistId])
+  @@index([locationId])
+  @@index([slotId])
+  @@index([status])
+  @@index([startAt])
+  @@index([code])
+  @@map("appointments")
+}
+
+// ============================================================================
+// AUTHENTICATION
+// ============================================================================
+
+model MagicToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String?  @map("tenant_id") @db.Uuid
+  email     String
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("magic_tokens")
+}
+
+model AuthLog {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String?     @map("user_id") @db.Uuid
+  method    AuthMethod
+  outcome   AuthOutcome
+  reason    String?
+  ip        String?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  user UserAccount? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("auth_logs")
+}

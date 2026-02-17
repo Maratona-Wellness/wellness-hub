@@ -1,0 +1,95 @@
+%% Users bounded context - sequence diagrams for REST endpoints
+
+sequenceDiagram
+    title POST /auth/magic-link/request (Solicitar token)
+    actor E as Employee
+    participant C as UsersRestController
+    participant S as UsersApplicationService
+    participant TP as ResolveTenantPort
+    participant MP as MagicTokenPort
+    participant EP as NotificationsEventPublisher
+    participant DB as Database
+    participant EB as EventBus
+    E->>C: POST email corporativo
+    C->>S: requestMagicLink(email)
+    S->>TP: resolveTenantByEmailDomain(email)
+    TP-->>S: tenant
+    alt tenant ativo
+      S->>MP: createMagicToken(tenant,email,TTL=15m)
+      MP-->>S: token
+      S->>EB: publish EmailMagicLinkRequested(token)
+      EB-->>EP: deliver event
+      EP->>DB: persist notification log
+      S-->>C: 202 Accepted
+    else tenant inválido/inativo
+      S-->>C: 400 Bad Request (domínio não autorizado)
+    end
+
+sequenceDiagram
+    title POST /auth/magic-link/verify (Validar token)
+    actor E as Employee
+    participant C as UsersRestController
+    participant S as UsersApplicationService
+    participant MP as MagicTokenPort
+    participant UP as UserAccountPort
+    participant SP as SessionPort
+    participant EB as EventBus
+    E->>C: POST token
+    C->>S: verifyMagicToken(token)
+    S->>MP: validateAndConsume(token)
+    alt token válido e não expirado
+      MP-->>S: email, tenant
+      S->>UP: getOrCreateEmployeeAccount(email, tenant)
+      UP-->>S: userAccount
+      S->>SP: createSession(userAccount, ttl=30m)
+      SP-->>S: sessionId, jwt
+      S->>EB: publish UserAuthenticated(userId, tenantId)
+      S-->>C: 200 OK (jwt, perfil EMPLOYEE)
+    else inválido/expirado/uso prévio
+      S-->>C: 400/410 (erro específico)
+    end
+
+sequenceDiagram
+    title POST /auth/login (Senha - terapeutas/admins)
+    actor U as User (Therapist/Admin)
+    participant C as UsersRestController
+    participant S as UsersApplicationService
+    participant UP as UserAccountPort
+    participant HP as HashingProvider
+    participant SP as SessionPort
+    participant EB as EventBus
+    U->>C: POST email+senha
+    C->>S: loginWithPassword(email, pwd)
+    S->>UP: findByEmail(email)
+    UP-->>S: userAccount(+roles)
+    S->>HP: verify(pwd, userAccount.password_hash)
+    alt ok e ativo
+      S->>SP: createSession(userAccount, ttl=30m)
+      SP-->>S: session
+      S->>EB: publish UserAuthenticated(userId, tenantScope?)
+      S-->>C: 200 OK (jwt, roles)
+    else falha/usuário inativo
+      S-->>C: 401/403
+    end
+
+sequenceDiagram
+    title POST /auth/logout (Invalidar sessão)
+    actor U as User
+    participant C as UsersRestController
+    participant SP as SessionPort
+    U->>C: POST (auth header)
+    C->>SP: invalidateSession(sessionId)
+    SP-->>C: ok
+    C-->>U: 204 No Content
+
+sequenceDiagram
+    title GET /me (Perfil do usuário)
+    actor U as User
+    participant C as UsersRestController
+    participant S as UsersApplicationService
+    participant UP as UserAccountPort
+    U->>C: GET (auth header)
+    C->>S: getCurrentUser(context)
+    S->>UP: findById(userId)
+    UP-->>S: userAccount(+roles, tenantScope)
+    S-->>C: 200 OK (UserProfileDTO)

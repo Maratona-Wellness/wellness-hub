@@ -1,0 +1,78 @@
+%% Locations bounded context - sequence diagrams for REST endpoints
+
+sequenceDiagram
+    title POST /locations (Criar sede) - Tenant Admin
+    actor TA as TenantAdmin
+    participant C as LocationsRestController
+    participant S as LocationsApplicationService
+    participant AP as AuthzPolicy
+    participant WP as LocationWritePort
+    participant EB as EventBus
+    TA->>C: POST LocationCreateRequest
+    C->>S: create(dto, auth)
+    S->>AP: ensureTenantAdmin(auth, dto.tenantId)
+    alt autorizado
+      S->>WP: save(newLocation with tenantId)
+      WP-->>S: location
+      S->>EB: publish LocationCreated(locationId, tenantId)
+      S-->>C: 201 Created (LocationDTO)
+    else não autorizado
+      S-->>C: 403 Forbidden
+    end
+
+sequenceDiagram
+    title GET /locations (Listar sedes do tenant)
+    actor U as User
+    participant C as LocationsRestController
+    participant S as LocationsApplicationService
+    participant RP as LocationReadPort
+    participant AP as AuthzPolicy
+    U->>C: GET (auth)
+    C->>S: list(auth, filters)
+    S->>AP: resolveTenantScope(auth)
+    AP-->>S: tenantId
+    S->>RP: findByTenant(tenantId, filters)
+    RP-->>S: page<Location>
+    S-->>C: 200 OK (LocationSummaryDTO[])
+
+sequenceDiagram
+    title PATCH /locations/{id} (Editar sede) - Tenant Admin
+    actor TA as TenantAdmin
+    participant C as LocationsRestController
+    participant S as LocationsApplicationService
+    participant RP as LocationReadPort
+    participant AP as AuthzPolicy
+    participant WP as LocationWritePort
+    TA->>C: PATCH id, LocationUpdateRequest
+    C->>S: update(id, dto, auth)
+    S->>RP: findById(id)
+    RP-->>S: location(tenantId)
+    S->>AP: ensureTenantAdmin(auth, location.tenantId)
+    alt autorizado
+      S->>WP: update(id, dto)
+      WP-->>S: location
+      S-->>C: 200 OK (LocationDTO)
+    else
+      S-->>C: 403
+    end
+
+sequenceDiagram
+    title DELETE /locations/{id} (Inativar sede) - Tenant Admin
+    actor TA as TenantAdmin
+    participant C as LocationsRestController
+    participant S as LocationsApplicationService
+    participant RP as LocationReadPort
+    participant AP as AuthzPolicy
+    participant WP as LocationWritePort
+    TA->>C: DELETE id
+    C->>S: deactivate(id, auth)
+    S->>RP: findById(id)
+    RP-->>S: location(tenantId)
+    S->>AP: ensureTenantAdmin(auth, location.tenantId)
+    alt autorizado
+      S->>WP: deactivate(id)
+      WP-->>S: ok
+      S-->>C: 204 No Content
+    else
+      S-->>C: 403
+    end

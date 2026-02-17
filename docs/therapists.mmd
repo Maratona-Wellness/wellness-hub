@@ -1,0 +1,123 @@
+%% Therapists bounded context - sequence diagrams for REST endpoints
+
+sequenceDiagram
+    title POST /therapists (Criar terapeuta) - Admin Maratona
+    actor A as Admin Maratona
+    participant C as TherapistsRestController
+    participant S as TherapistsApplicationService
+    participant V as TherapistValidationService
+    participant WP as TherapistWritePort
+    participant NP as NotificationsEventPublisher
+    participant EB as EventBus
+    A->>C: POST TherapistCreateRequest
+    C->>S: createTherapist(dto)
+    S->>V: validateUnique(email, cpf)
+    alt válido
+      S->>WP: save(newTherapist)
+      WP-->>S: therapist
+      S->>EB: publish TherapistCreated(therapistId)
+      EB-->>NP: deliver event (send welcome email)
+      S-->>C: 201 Created (TherapistDTO)
+    else inválido
+      S-->>C: 400 (violação unicidade)
+    end
+
+sequenceDiagram
+    title GET /therapists (Listar com filtros) - Admin Maratona
+    actor A as Admin Maratona
+    participant C as TherapistsRestController
+    participant S as TherapistsApplicationService
+    participant RP as TherapistReadPort
+    A->>C: GET ?status&specialty&tenant
+    C->>S: listTherapists(filters,pagination)
+    S->>RP: search(filters,pagination)
+    RP-->>S: page<TherapistSummary>
+    S-->>C: 200 OK (TherapistSummaryDTO[])
+
+sequenceDiagram
+    title GET /therapists/{id} (Detalhes)
+    actor A as Admin Maratona
+    participant C as TherapistsRestController
+    participant S as TherapistsApplicationService
+    participant RP as TherapistReadPort
+    A->>C: GET id
+    C->>S: getById(id)
+    S->>RP: findById(id)
+    alt encontrado
+      RP-->>S: therapist(+assignments)
+      S-->>C: 200 OK (TherapistDetailDTO)
+    else 404
+      S-->>C: 404 Not Found
+    end
+
+sequenceDiagram
+    title POST /therapists/{id}/assignments (Vincular empresa+sede)
+    actor A as Admin Maratona
+    participant C as TherapistsRestController
+    participant S as TherapistsApplicationService
+    participant AP as AssignmentPort
+    participant VP as ValidationService
+    A->>C: POST { tenantId, locationIds, availability? }
+    C->>S: addAssignments(id, payload)
+    S->>VP: validateTenantAndLocations(tenantId, locationIds)
+    alt ok
+      S->>AP: createAssignments(therapistId, tenantId, locationIds)
+      AP-->>S: assignments
+      S-->>C: 201 Created (AssignmentDTO[])
+    else erro
+      S-->>C: 400/404
+    end
+
+sequenceDiagram
+    title DELETE /therapists/{id}/assignments/{assignmentId} (Remover vinculação)
+    actor A as Admin Maratona
+    participant C as TherapistsRestController
+    participant S as TherapistsApplicationService
+    participant AP as AssignmentPort
+    participant PP as AppointmentPolicyPort
+    A->>C: DELETE assignmentId
+    C->>S: removeAssignment(id, assignmentId)
+    S->>PP: hasFutureAppointments(assignmentId)?
+    alt há futuros
+      S-->>C: 409 Conflict (alerta de agendamentos futuros)
+    else pode remover
+      S->>AP: softDelete(assignmentId)
+      AP-->>S: ok
+      S-->>C: 204 No Content
+    end
+
+sequenceDiagram
+    title PATCH /therapists/{id} (Editar dados)
+    actor A as Admin Maratona
+    participant C as TherapistsRestController
+    participant S as TherapistsApplicationService
+    participant WP as TherapistWritePort
+    participant VP as TherapistValidationService
+    A->>C: PATCH TherapistUpdateRequest
+    C->>S: updateTherapist(id, dto)
+    S->>VP: validateUpdates(dto)
+    alt ok
+      S->>WP: update(id, dto)
+      WP-->>S: therapist
+      S-->>C: 200 OK (TherapistDTO)
+    else erro validação
+      S-->>C: 400
+    end
+
+sequenceDiagram
+    title POST /therapists/{id}/deactivate (Inativar)
+    actor A as Admin Maratona
+    participant C as TherapistsRestController
+    participant S as TherapistsApplicationService
+    participant WP as TherapistWritePort
+    participant PP as AppointmentPolicyPort
+    A->>C: POST
+    C->>S: deactivate(id)
+    S->>PP: checkFutureAppointments(therapistId)
+    alt há futuros
+      S-->>C: 409 Conflict (alerta)
+    else
+      S->>WP: deactivate(id)
+      WP-->>S: therapist
+      S-->>C: 200 OK (TherapistDTO)
+    end

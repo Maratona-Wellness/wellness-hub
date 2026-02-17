@@ -1,0 +1,92 @@
+%% Appointments bounded context - sequence diagrams for REST endpoints
+
+sequenceDiagram
+    title GET /appointments/availability (Disponibilidade para agendar)
+    actor E as Employee
+    participant C as AppointmentsRestController
+    participant S as AppointmentsApplicationService
+    participant AP as AuthzPolicy
+    participant VP as AppointmentViewPort
+    E->>C: GET ?date&programId&locationId
+    C->>S: listAvailability(filters, auth)
+    S->>AP: resolveTenantScope(auth)
+    AP-->>S: tenantId
+    S->>VP: fetchAvailableSlots(tenantId, filters)
+    VP-->>S: slots[] (with remaining capacity)
+    S-->>C: 200 OK (AvailabilityDTO[])
+
+sequenceDiagram
+    title POST /appointments (Reservar agendamento)
+    actor E as Employee
+    participant C as AppointmentsRestController
+    participant S as AppointmentsApplicationService
+    participant PP as AppointmentPolicy
+    participant RP as SlotReadPort
+    participant WP as AppointmentWritePort
+    participant EB as EventBus
+    E->>C: POST { slotId, therapistId? }
+    C->>S: book(slotId, therapistId?, auth)
+    S->>RP: getSlot(slotId)
+    RP-->>S: slot(tenantId, programId, start/end, capacity, reserved)
+    S->>PP: validateRules(employeeId, slot)
+    Note right of PP: Regras:
+      - 1 sessão/dia por funcionário
+      - antecedência mínima (ex: 2h)
+      - capacidade disponível
+      - conflito de agenda terapeuta
+      - programa/tenant ativos
+    alt regras OK
+      S->>WP: createAppointment(employeeId, slot, therapistId?)
+      WP-->>S: appointment(code, status=CONFIRMED)
+      S->>EB: publish AppointmentCreated(appointmentId)
+      S-->>C: 201 Created (AppointmentDTO)
+    else violação
+      S-->>C: 409/400 (detalhe da política)
+    end
+
+sequenceDiagram
+    title POST /appointments/{id}/cancel (Cancelar agendamento)
+    actor E as Employee
+    participant C as AppointmentsRestController
+    participant S as AppointmentsApplicationService
+    participant PP as CancellationPolicy
+    participant WP as AppointmentWritePort
+    participant EB as EventBus
+    E->>C: POST id { reason? }
+    C->>S: cancel(id, auth)
+    S->>PP: canCancel(appointment, now)
+    Note right of PP: Regras:
+      - prazo limite (ex: >=4h)
+      - registrar histórico e penalidades
+    alt permitido
+      S->>WP: cancel(id)
+      WP-->>S: appointment(status=CANCELLED)
+      S->>EB: publish AppointmentCancelled(id)
+      S-->>C: 200 OK (AppointmentDTO)
+    else negado
+      S-->>C: 409/403
+    end
+
+sequenceDiagram
+    title POST /appointments/{id}/presence (Registrar presença/ausência) - Therapist
+    actor T as Therapist
+    participant C as AppointmentsRestController
+    participant S as AppointmentsApplicationService
+    participant PP as PresencePolicy
+    participant WP as AppointmentWritePort
+    participant EB as EventBus
+    T->>C: POST id { status: PRESENT/NO_SHOW/LATE, notes? }
+    C->>S: markPresence(id, status, notes, auth)
+    S->>PP: validatePresenceWindow(id, status, now)
+    Note right of PP: Regras:
+      - no-show apenas após horário + tolerância (15m)
+      - editar até 24h
+      - somente do próprio terapeuta
+    alt ok
+      S->>WP: updatePresence(id, status, notes)
+      WP-->>S: appointment(updated)
+      S->>EB: publish PresenceRecorded(id, status)
+      S-->>C: 200 OK (AppointmentDTO)
+    else negado
+      S-->>C: 409/403
+    end
