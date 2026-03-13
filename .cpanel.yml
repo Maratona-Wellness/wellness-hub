@@ -1,0 +1,28 @@
+---
+deployment:
+  tasks:
+    # 1. Instala todas as dependências (incluindo devDependencies para o build)
+    - export DEPLOYPATH=/home/maratona/wellness-hub
+    - /bin/bash -c 'cd $DEPLOYPATH && npm ci'
+
+    # 2. Gera o Prisma Client
+    - /bin/bash -c 'cd $DEPLOYPATH && npx prisma generate'
+
+    # 3. Faz o build do Next.js (standalone)
+    - /bin/bash -c 'cd $DEPLOYPATH && npm run build'
+
+    # 4. Monta a pasta de produção
+    - /bin/bash -c 'cd $DEPLOYPATH && rm -rf production && mkdir -p production'
+    - /bin/bash -c 'cd $DEPLOYPATH && cp -r .next/standalone/* production/'
+    - /bin/bash -c 'cd $DEPLOYPATH && cp -r .next/standalone/.next production/.next'
+    - /bin/bash -c 'cd $DEPLOYPATH && cp -r .next/static production/.next/static'
+    - /bin/bash -c 'cd $DEPLOYPATH && [ -d public ] && cp -r public production/public || true'
+    - /bin/bash -c 'cd $DEPLOYPATH && cp app.js production/app.js'
+    - /bin/bash -c 'cd $DEPLOYPATH && mkdir -p production/prisma && cp prisma/schema.prisma production/prisma/schema.prisma'
+    - /bin/bash -c 'cd $DEPLOYPATH && [ -f .env ] && cp .env production/.env || true'
+
+    # 5. Move a produção para o diretório da aplicação Node.js
+    - /bin/bash -c 'cd $DEPLOYPATH && rsync -a --delete production/ /home/maratona/app/'
+
+    # 6. Reinicia a aplicação Node.js via cPanel (Phusion Passenger)
+    - /bin/bash -c 'mkdir -p /home/maratona/app/tmp && touch /home/maratona/app/tmp/restart.txt'
