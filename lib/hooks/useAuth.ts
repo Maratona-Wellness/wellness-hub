@@ -105,13 +105,13 @@ export function useAuth(): UseAuthReturn {
 export function getRedirectByRole(role: RoleType): string {
   switch (role) {
     case "SUPER_ADMIN":
-      return "/dashboard";
+      return "/superadmin/dashboard";
     case "TENANT_ADMIN":
-      return "/dashboard";
+      return "/admin/dashboard";
     case "THERAPIST":
-      return "/dashboard";
+      return "/therapist/calendar";
     case "EMPLOYEE":
-      return "/dashboard";
+      return "/appointments";
     default:
       return "/dashboard";
   }

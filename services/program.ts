@@ -90,6 +90,10 @@ export async function listPrograms(query: ListProgramsQuery): Promise<
         tenant: {
           select: { id: true, name: true, domain: true },
         },
+        tenantPrograms: {
+          include: { tenant: { select: { id: true, name: true } } },
+          where: { active: true },
+        },
         _count: {
           select: {
             availabilitySlots: true,
@@ -179,36 +183,61 @@ export async function getProgramById(id: string) {
 // ============================================================================
 
 /**
- * Cria um novo programa vinculado a um tenant
+ * Cria um novo programa (global ou vinculado a tenant)
  */
 export async function createProgram(data: CreateProgramInput) {
-  // Verificar se o tenant existe e está ativo
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: data.tenantId },
-    select: { id: true, active: true },
-  });
+  // If tenantId is provided, verify it exists
+  if (data.tenantId) {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: data.tenantId },
+      select: { id: true, active: true },
+    });
 
-  if (!tenant) {
-    throw new ProgramServiceError("TENANT_NOT_FOUND", "Tenant não encontrado");
+    if (!tenant) {
+      throw new ProgramServiceError(
+        "TENANT_NOT_FOUND",
+        "Tenant não encontrado",
+      );
+    }
+
+    if (!tenant.active) {
+      throw new ProgramServiceError("TENANT_NOT_FOUND", "Tenant está inativo");
+    }
   }
 
-  if (!tenant.active) {
-    throw new ProgramServiceError("TENANT_NOT_FOUND", "Tenant está inativo");
+  // Collect tenantIds for TenantProgram associations
+  const tenantIdsToLink: string[] = [];
+  if (data.tenantIds && data.tenantIds.length > 0) {
+    tenantIdsToLink.push(...data.tenantIds);
+  } else if (data.tenantId) {
+    tenantIdsToLink.push(data.tenantId);
   }
 
   const program = await prisma.program.create({
     data: {
       name: data.name,
-      tenantId: data.tenantId,
+      tenantId: data.tenantId || null,
       sessionDurationMinutes: data.sessionDurationMinutes,
       dayStart: data.dayStart,
       dayEnd: data.dayEnd,
       dailyCapacityPerLocation: data.dailyCapacityPerLocation,
       active: data.active ?? true,
+      ...(tenantIdsToLink.length > 0 && {
+        tenantPrograms: {
+          createMany: {
+            data: tenantIdsToLink.map((tId) => ({
+              tenantId: tId,
+              active: true,
+            })),
+            skipDuplicates: true,
+          },
+        },
+      }),
     },
     include: {
-      tenant: {
-        select: { id: true, name: true, domain: true },
+      tenant: { select: { id: true, name: true, domain: true } },
+      tenantPrograms: {
+        include: { tenant: { select: { id: true, name: true } } },
       },
     },
   });
@@ -310,14 +339,19 @@ export async function toggleProgramStatus(id: string) {
 // ============================================================================
 
 /**
- * Lista programas de um tenant específico
+ * Lista programas vinculados a um tenant específico (via TenantProgram)
  */
 export async function listProgramsByTenant(
   tenantId: string,
   options: { activeOnly?: boolean } = {},
 ) {
   const where: Record<string, unknown> = {
-    ...withTenantScope(tenantId),
+    tenantPrograms: {
+      some: {
+        tenantId,
+        ...(options.activeOnly ? { active: true } : {}),
+      },
+    },
   };
 
   if (options.activeOnly) {
@@ -562,7 +596,7 @@ export async function generateAvailabilitySlots(
           slotDate: date,
           startTime: slot.startTime,
           endTime: slot.endTime,
-          capacity: 1,
+          capacity: program.dailyCapacityPerLocation,
           reserved: 0,
         });
       }

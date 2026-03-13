@@ -10,6 +10,10 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/molecules/Card";
 import { EmptyState } from "@/components/molecules/EmptyState";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/molecules/DataTable";
 import { useToast, ToastContainer } from "@/components/molecules/Toast";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -123,7 +127,7 @@ export default function AvailabilityOverviewPage() {
             {/* Filters */}
             <Card>
               <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap gap-3 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1 block">
                       Data inicial
@@ -144,7 +148,7 @@ export default function AvailabilityOverviewPage() {
                       onChange={(e) => setEndDate(e.target.value)}
                     />
                   </div>
-                  <div className="w-48">
+                  <div>
                     <label className="text-sm font-medium text-gray-700 mb-1 block">
                       Programa
                     </label>
@@ -163,7 +167,7 @@ export default function AvailabilityOverviewPage() {
                 </div>
 
                 {/* Quick date ranges */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Text variant="p" className="text-sm text-gray-500 mr-2">
                     Atalhos:
                   </Text>
@@ -199,53 +203,59 @@ export default function AvailabilityOverviewPage() {
             ) : (
               <>
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <Card className="p-3 sm:p-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
                         <Calendar size={20} className="text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Total de Slots</p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          Total de Slots
+                        </p>
+                        <p className="text-lg sm:text-2xl font-bold">
                           {data.summary.totalSlots}
                         </p>
                       </div>
                     </div>
                   </Card>
 
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
+                  <Card className="p-3 sm:p-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
                         <TrendingUp size={20} className="text-green-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Reservados</p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          Reservados
+                        </p>
+                        <p className="text-lg sm:text-2xl font-bold">
                           {data.summary.totalReserved}
                         </p>
                       </div>
                     </div>
                   </Card>
 
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg">
+                  <Card className="p-3 sm:p-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 bg-amber-100 rounded-lg">
                         <Package size={20} className="text-amber-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Disponíveis</p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          Disponíveis
+                        </p>
+                        <p className="text-lg sm:text-2xl font-bold">
                           {data.summary.totalAvailable}
                         </p>
                       </div>
                     </div>
                   </Card>
 
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
+                  <Card className="p-3 sm:p-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <div
-                        className={`p-2 rounded-lg ${data.summary.occupancyRate >= 80 ? "bg-red-100" : data.summary.occupancyRate >= 50 ? "bg-amber-100" : "bg-green-100"}`}
+                        className={`p-1.5 sm:p-2 rounded-lg ${data.summary.occupancyRate >= 80 ? "bg-red-100" : data.summary.occupancyRate >= 50 ? "bg-amber-100" : "bg-green-100"}`}
                       >
                         <BarChart3
                           size={20}
@@ -255,11 +265,11 @@ export default function AvailabilityOverviewPage() {
                         />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs sm:text-sm text-gray-500">
                           Taxa de Ocupação
                         </p>
                         <p
-                          className={`text-2xl font-bold ${getOccupancyColor(data.summary.occupancyRate)}`}
+                          className={`text-lg sm:text-2xl font-bold ${getOccupancyColor(data.summary.occupancyRate)}`}
                         >
                           {formatPercent(data.summary.occupancyRate)}
                         </p>
@@ -269,95 +279,92 @@ export default function AvailabilityOverviewPage() {
                 </div>
 
                 {/* Programs Table */}
-                <div className="overflow-x-auto rounded-lg border border-(--color-border)">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-(--color-border) bg-(--color-background-alt)">
-                        <th className="px-4 py-3 text-left text-sm font-medium text-(--color-text-muted)">
-                          <div className="flex items-center gap-1">
-                            <Package size={14} />
-                            Programa
+                {(() => {
+                  type ProgramRow = OverviewData["byProgram"][number];
+
+                  const programColumns: DataTableColumn<ProgramRow>[] = [
+                    {
+                      header: "Programa",
+                      accessor: "programName",
+                      sortable: true,
+                      render: (_, row) => (
+                        <div className="flex items-center gap-1">
+                          <Package
+                            size={14}
+                            className="text-(--color-text-muted)"
+                          />
+                          <Text variant="p" className="text-sm font-medium">
+                            {row.programName}
+                          </Text>
+                        </div>
+                      ),
+                    },
+                    {
+                      header: "Total",
+                      accessor: "totalSlots",
+                      sortable: true,
+                      className: "text-center",
+                      render: (val) => (
+                        <span className="text-sm font-medium">
+                          {String(val)}
+                        </span>
+                      ),
+                    },
+                    {
+                      header: "Disponíveis",
+                      accessor: "totalSlots",
+                      className: "text-center",
+                      render: (_, row) => (
+                        <Badge variant="success">
+                          {row.totalSlots - row.totalReserved}
+                        </Badge>
+                      ),
+                    },
+                    {
+                      header: "Reservados",
+                      accessor: "totalReserved",
+                      hideBelow: "md",
+                      className: "text-center",
+                    },
+                    {
+                      header: "Ocupação",
+                      accessor: "occupancyRate",
+                      sortable: true,
+                      className: "text-center",
+                      render: (_, row) => (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                row.occupancyRate >= 80
+                                  ? "bg-red-500"
+                                  : row.occupancyRate >= 50
+                                    ? "bg-amber-500"
+                                    : "bg-green-500"
+                              }`}
+                              style={{
+                                width: `${Math.min(row.occupancyRate, 100)}%`,
+                              }}
+                            />
                           </div>
-                        </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                          Total
-                        </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                          Disponíveis
-                        </th>
-                        <th className="hidden px-4 py-3 text-center text-sm font-medium text-(--color-text-muted) md:table-cell">
-                          Reservados
-                        </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                          Ocupação
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-(--color-border)">
-                      {data.byProgram.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={5}
-                            className="px-4 py-8 text-center text-sm text-gray-500"
-                          >
-                            Nenhum programa encontrado para o período
-                            selecionado.
-                          </td>
-                        </tr>
-                      ) : (
-                        data.byProgram.map((prog) => {
-                          const available =
-                            prog.totalSlots - prog.totalReserved;
-                          return (
-                            <tr
-                              key={prog.programId}
-                              className="hover:bg-(--color-background-alt) transition-colors"
-                            >
-                              <td className="px-4 py-3">
-                                <Text
-                                  variant="p"
-                                  className="text-sm font-medium"
-                                >
-                                  {prog.programName}
-                                </Text>
-                              </td>
-                              <td className="px-4 py-3 text-center text-sm font-medium">
-                                {prog.totalSlots}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <Badge variant="success">{available}</Badge>
-                              </td>
-                              <td className="hidden px-4 py-3 text-center text-sm md:table-cell">
-                                {prog.totalReserved}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full ${
-                                        prog.occupancyRate >= 80
-                                          ? "bg-red-500"
-                                          : prog.occupancyRate >= 50
-                                            ? "bg-amber-500"
-                                            : "bg-green-500"
-                                      }`}
-                                      style={{
-                                        width: `${Math.min(prog.occupancyRate, 100)}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-medium w-8 text-right">
-                                    {formatPercent(prog.occupancyRate)}
-                                  </span>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                          <span className="text-xs font-medium w-8 text-right">
+                            {formatPercent(row.occupancyRate)}
+                          </span>
+                        </div>
+                      ),
+                    },
+                  ];
+
+                  return (
+                    <DataTable<ProgramRow>
+                      columns={programColumns}
+                      data={data.byProgram}
+                      loading={false}
+                      rowKey={(row) => row.programId}
+                      emptyMessage="Nenhum programa encontrado para o período selecionado."
+                    />
+                  );
+                })()}
               </>
             )}
           </div>

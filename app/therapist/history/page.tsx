@@ -13,15 +13,12 @@ import {
   CheckCircle,
   XCircle,
   BarChart3,
-  ChevronLeft,
-  ChevronRight,
   User,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { Badge } from "@/components/ui/Badge";
-import { Spinner } from "@/components/ui/Spinner";
 import { Select } from "@/components/ui/Select";
 import {
   Card,
@@ -29,8 +26,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/molecules/Card";
-import { EmptyState } from "@/components/molecules/EmptyState";
-import { Pagination } from "@/components/molecules/Pagination";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/molecules/DataTable";
 import { useToast, ToastContainer } from "@/components/molecules/Toast";
 import { AuthGuard } from "@/components/AuthGuard";
 
@@ -266,16 +265,22 @@ export default function TherapistHistoryPage() {
                 Visualize seu histórico completo de sessões realizadas
               </Text>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
+                className="flex-1 sm:flex-none"
               >
                 <Filter className="h-4 w-4 mr-1" />
                 Filtros
               </Button>
-              <Button variant="secondary" size="sm" onClick={handleExportCSV}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleExportCSV}
+                className="flex-1 sm:flex-none"
+              >
                 <Download className="h-4 w-4 mr-1" />
                 Exportar CSV
               </Button>
@@ -284,15 +289,15 @@ export default function TherapistHistoryPage() {
 
           {/* Stats Cards */}
           {stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
+                <CardContent className="pt-3 sm:pt-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
                       <CheckCircle className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-green-600">
+                      <div className="text-lg sm:text-2xl font-bold text-green-600">
                         {stats.totalCompleted}
                       </div>
                       <div className="text-xs text-gray-500">Concluídos</div>
@@ -301,13 +306,13 @@ export default function TherapistHistoryPage() {
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-100 rounded-lg">
+                <CardContent className="pt-3 sm:pt-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
                       <XCircle className="h-5 w-5 text-red-600" />
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-red-600">
+                      <div className="text-lg sm:text-2xl font-bold text-red-600">
                         {stats.totalNoShows}
                       </div>
                       <div className="text-xs text-gray-500">Ausências</div>
@@ -316,13 +321,13 @@ export default function TherapistHistoryPage() {
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gray-100 rounded-lg">
+                <CardContent className="pt-3 sm:pt-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-gray-100 rounded-lg">
                       <XCircle className="h-5 w-5 text-gray-500" />
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-gray-500">
+                      <div className="text-lg sm:text-2xl font-bold text-gray-500">
                         {stats.totalCancelled}
                       </div>
                       <div className="text-xs text-gray-500">Cancelados</div>
@@ -331,13 +336,13 @@ export default function TherapistHistoryPage() {
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
+                <CardContent className="pt-3 sm:pt-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
                       <TrendingUp className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-lg sm:text-2xl font-bold text-blue-600">
                         {stats.attendanceRate}%
                       </div>
                       <div className="text-xs text-gray-500">
@@ -360,26 +365,28 @@ export default function TherapistHistoryPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-end gap-3 h-40">
-                  {stats.totalByMonth.map((item) => (
-                    <div
-                      key={item.month}
-                      className="flex-1 flex flex-col items-center"
-                    >
-                      <span className="text-xs font-semibold text-gray-700 mb-1">
-                        {item.count}
-                      </span>
+                <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                  <div className="flex items-end gap-2 sm:gap-3 h-40 min-w-75">
+                    {stats.totalByMonth.map((item) => (
                       <div
-                        className="w-full bg-(--color-accent) rounded-t-md transition-all duration-500 min-h-[4px]"
-                        style={{
-                          height: `${(item.count / maxMonthCount) * 100}%`,
-                        }}
-                      />
-                      <span className="text-xs text-gray-500 mt-2">
-                        {formatMonthLabel(item.month)}
-                      </span>
-                    </div>
-                  ))}
+                        key={item.month}
+                        className="flex-1 flex flex-col items-center min-w-10"
+                      >
+                        <span className="text-xs font-semibold text-gray-700 mb-1">
+                          {item.count}
+                        </span>
+                        <div
+                          className="w-full bg-(--color-accent) rounded-t-md transition-all duration-500 min-h-[4px]"
+                          style={{
+                            height: `${(item.count / maxMonthCount) * 100}%`,
+                          }}
+                        />
+                        <span className="text-xs text-gray-500 mt-2">
+                          {formatMonthLabel(item.month)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -389,7 +396,7 @@ export default function TherapistHistoryPage() {
           {showFilters && (
             <Card>
               <CardContent className="pt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Empresa
@@ -507,139 +514,115 @@ export default function TherapistHistoryPage() {
           )}
 
           {/* Data Table */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" />
-            </div>
-          ) : items.length === 0 ? (
-            <EmptyState
-              icon={<Calendar className="h-16 w-16" />}
-              title="Nenhum atendimento encontrado"
-              description="Não há registros de atendimentos para os filtros selecionados."
-            />
-          ) : (
-            <Card>
-              <CardContent className="pt-4">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-gray-50">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Código
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Data / Horário
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Funcionário
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Empresa
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Local
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Programa
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Status
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item) => (
-                        <tr
-                          key={item.id}
-                          className="border-b last:border-b-0 hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="py-3 px-4 font-mono text-xs">
-                            {item.code}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div>{formatDate(item.startAt)}</div>
-                            <div className="text-xs text-gray-500">
-                              {formatTime(item.startAt)} -{" "}
-                              {formatTime(item.endAt)}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-medium">
-                              {item.employee.name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {item.employee.email}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {item.tenant.name}
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {item.location.name}
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {item.program.name}
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge variant={getStatusBadgeVariant(item.status)}>
-                              {getStatusLabel(item.status)}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                router.push(
-                                  `/therapist/appointments/${item.id}`,
-                                )
-                              }
-                            >
-                              Ver
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <Text className="text-sm text-gray-500">
-                      Mostrando {(page - 1) * limit + 1} -{" "}
-                      {Math.min(page * limit, total)} de {total} registros
-                    </Text>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={page <= 1}
-                        onClick={() => setPage(page - 1)}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm font-medium">
-                        {page} / {totalPages}
-                      </span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={page >= totalPages}
-                        onClick={() => setPage(page + 1)}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
+          {(() => {
+            const historyColumns: DataTableColumn<HistoryItem>[] = [
+              {
+                header: "Código",
+                accessor: "code",
+                sortable: true,
+                hideBelow: "md",
+                render: (_, row) => (
+                  <span className="font-mono text-xs">{row.code}</span>
+                ),
+              },
+              {
+                header: "Data / Horário",
+                accessor: "startAt",
+                sortable: true,
+                render: (_, row) => (
+                  <div>
+                    <div>{formatDate(row.startAt)}</div>
+                    <div className="text-xs text-gray-500">
+                      {formatTime(row.startAt)} - {formatTime(row.endAt)}
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                ),
+              },
+              {
+                header: "Funcionário",
+                accessor: "id",
+                render: (_, row) => (
+                  <div>
+                    <div className="font-medium">{row.employee.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {row.employee.email}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                header: "Empresa",
+                accessor: "id",
+                hideBelow: "md",
+                render: (_, row) => (
+                  <span className="text-gray-600">{row.tenant.name}</span>
+                ),
+              },
+              {
+                header: "Local",
+                accessor: "id",
+                hideBelow: "lg",
+                render: (_, row) => (
+                  <span className="text-gray-600">{row.location.name}</span>
+                ),
+              },
+              {
+                header: "Programa",
+                accessor: "id",
+                hideBelow: "lg",
+                render: (_, row) => (
+                  <span className="text-gray-600">{row.program.name}</span>
+                ),
+              },
+              {
+                header: "Status",
+                accessor: "status",
+                sortable: true,
+                render: (_, row) => (
+                  <Badge variant={getStatusBadgeVariant(row.status)}>
+                    {getStatusLabel(row.status)}
+                  </Badge>
+                ),
+              },
+              {
+                header: "Ações",
+                accessor: "id",
+                render: (_, row) => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/therapist/appointments/${row.id}`)
+                    }
+                  >
+                    Ver
+                  </Button>
+                ),
+              },
+            ];
+
+            return (
+              <DataTable<HistoryItem>
+                columns={historyColumns}
+                data={items}
+                loading={loading}
+                rowKey="id"
+                emptyMessage="Nenhum atendimento encontrado"
+                emptyIcon={<Calendar className="h-16 w-16" />}
+                pagination={
+                  totalPages > 1
+                    ? {
+                        currentPage: page,
+                        totalPages,
+                        totalItems: total,
+                        itemsPerPage: limit,
+                        onPageChange: setPage,
+                      }
+                    : undefined
+                }
+              />
+            );
+          })()}
         </div>
         <ToastContainer toasts={toasts} onClose={removeToast} />
       </DashboardLayout>

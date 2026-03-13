@@ -1,19 +1,563 @@
 # Status de Implementação - Wellness Hub
 
-> **Última Atualização:** 8 de fevereiro de 2026  
-> **Parte Atual:** PARTE 8 - Dashboards Administrativos (Concluída)  
-> **Etapa Atual:** 8.6 - Configurações Globais (Concluída)
+> **Última Atualização:** 13 de março de 2026  
+> **Parte Atual:** CHANGES PARTE 6 - Reestruturação dos Dashboards (Concluída)  
+> **Etapa Atual:** Changes 6.4 - Dashboard Tenant Admin Charts (Concluída)
 
 ---
 
 ## Resumo Executivo
 
-| Métrica               | Status          |
-| --------------------- | --------------- |
-| **Parte Atual**       | PARTE 8 / 9     |
-| **Etapas Concluídas** | 48 / 53         |
-| **Progresso Geral**   | 90.6%           |
-| **Status**            | ✅ Em andamento |
+| Métrica               | Status                                       |
+| --------------------- | -------------------------------------------- |
+| **Parte Atual**       | PARTE 8 / 9 + CHANGES 6 / 6                  |
+| **Etapas Concluídas** | 48 / 53 + 23 / 23 changes                    |
+| **Progresso Geral**   | 90.6% (base) + Changes PARTEs 1-6 concluídas |
+| **Status**            | ✅ Changes completas                         |
+
+---
+
+## CHANGES PARTE 6: Reestruturação dos Dashboards ✅
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026  
+**Estimativa:** 1 semana  
+**Perfis impactados:** SUPER_ADMIN, TENANT_ADMIN
+
+### ✅ Changes Etapa 6.1: Dashboard Super Admin — Big Numbers
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Reescrita completa de `getSuperAdminDashboard(days)` com parâmetro de período configurável (7/15/30 dias)
+- ✅ 4 big numbers implementados: Empresas Ativas, Total de Funcionários, Total de Acessos (AuthLog SUCCESS), Total de Agendamentos
+- ✅ API route `GET /api/admin/dashboard` atualizada para aceitar query param `?days=`
+- ✅ Grid de 4 colunas responsivo (1 col mobile, 2 col sm, 4 col lg)
+- ✅ Cada card com ícone colorido, número grande em destaque e label descritivo
+
+### ✅ Changes Etapa 6.2: Dashboard Super Admin — Charts
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Recharts (v3.8.0) instalado e configurado como dependência
+- ✅ Chart 1: Gráfico de barras empilhado — Agendamentos por dia (verde=concluídos, vermelho=cancelados, azul=agendados)
+- ✅ Chart 2: Gráfico de barras — Acessos diários da plataforma (roxo)
+- ✅ Chart 3: Gráfico de barras horizontal — Funcionários por empresa (laranja)
+- ✅ Todos os charts com tooltips interativos, legendas e responsividade via ResponsiveContainer
+- ✅ Filtro de período (7/15/30 dias) funcional com recarregamento de dados
+- ✅ Layout: chart 1 ocupa largura total, charts 2 e 3 lado a lado em desktop
+
+### ✅ Changes Etapa 6.3: Dashboard Tenant Admin — Big Numbers
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Reescrita completa de `getTenantAdminDashboard(tenantId, days)` com parâmetro de período
+- ✅ 4 big numbers: Total de Funcionários, Total de Acessos (tenant), Total de Agendamentos (tenant), Taxa de Conversão (%)
+- ✅ Cálculo de acessos por tenant via junção Employee.userId + UserRole(TENANT_ADMIN) → AuthLog
+- ✅ Taxa de conversão = (agendamentos / acessos) \* 100
+- ✅ API route `GET /api/tenant-admin/dashboard` atualizada para aceitar query param `?days=`
+- ✅ Grid de 4 colunas responsivo com ícones coloridos e valores em destaque
+
+### ✅ Changes Etapa 6.4: Dashboard Tenant Admin — Charts
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Chart 1: Gráfico de barras empilhado — Agendamentos por dia (verde=concluídos, vermelho=cancelados, azul=agendados)
+- ✅ Chart 2: Gráfico de barras — Acessos diários dos funcionários (roxo)
+- ✅ Chart 3: Gráfico de linha — Taxa de conversão diária (laranja)
+- ✅ Todos os charts com tooltips, legendas e responsividade
+- ✅ Filtro de período (7/15/30 dias) funcional
+- ✅ Dados filtrados corretamente por tenantId
+
+**Arquivos Criados/Modificados (PARTE 6):**
+
+- `services/admin-dashboard.ts` — Reescrita de `getSuperAdminDashboard()` e `getTenantAdminDashboard()`, adição de helpers `buildDailyDateMap()` e `dateToKey()`
+- `app/api/admin/dashboard/route.ts` — Suporte a query param `?days=`
+- `app/api/tenant-admin/dashboard/route.ts` — Suporte a query param `?days=`
+- `app/superadmin/dashboard/page.tsx` — Reescrita completa com 4 big numbers + 3 charts Recharts
+- `app/admin/dashboard/page.tsx` — Reescrita completa com 4 big numbers + 3 charts Recharts
+- `package.json` — Adição de `recharts` como dependência
+
+**Decisões Técnicas:**
+
+- Recharts escolhido por ser a biblioteca mais popular para React, com boa tipagem TS e suporte a SSR
+- Dados diários (ao invés de mensais) para os charts, permitindo granularidade maior e filtro por período
+- Funções helper `buildDailyDateMap` e `dateToKey` centralizadas para evitar duplicação
+- Acessos do tenant calculados via junção Employee.userId + UserRole(TENANT_ADMIN) → AuthLog, pois AuthLog não possui tenantId diretamente
+- Chart 3 do Tenant Admin usa LineChart (ao invés de BarChart) para melhor visualização da taxa de conversão ao longo do tempo
+
+---
+
+## CHANGES PARTE 5: Correções do Super Admin ✅
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026  
+**Estimativa:** 1 semana  
+**Perfis impactados:** SUPER_ADMIN, TENANT_ADMIN
+
+### ✅ Changes Etapa 5.1: Programas Globais (Sem Tenant Obrigatório)
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Criado model `TenantProgram` no Prisma Schema (muitos-para-muitos entre Tenant e Program)
+- ✅ Campo `Program.tenantId` tornado opcional (`String?`), relação `onDelete: SetNull`
+- ✅ Criado arquivo de migração SQL `prisma/migrations/20260313_add_tenant_programs/migration.sql`
+- ✅ `prisma generate` executado com sucesso (tipos atualizados no PrismaClient)
+- ✅ Criado endpoint `GET/POST/DELETE /api/admin/programs/[id]/tenants` para gerenciar vínculos program↔tenant
+- ✅ `createProgram` agora lida com `tenantId` opcional e cria `TenantProgram` entries via `tenantIds`
+- ✅ `listPrograms` inclui `tenantPrograms` na query
+- ✅ `listProgramsByTenant` agora usa `tenantPrograms: { some: { tenantId } }`
+- ✅ Schema de validação atualizado — `tenantId` opcional, adicionado `tenantIds` array
+- ✅ Página de programas do super admin atualizada — coluna "Empresa" mostra tenants vinculados com badge de contagem
+- ✅ Select de tenant mostra "Programa global (sem vínculo)" como padrão
+
+**Arquivos Modificados:**
+
+- `prisma/schema.prisma` — model TenantProgram, Program.tenantId optional
+- `prisma/migrations/20260313_add_tenant_programs/migration.sql` — NOVO
+- `app/api/admin/programs/[id]/tenants/route.ts` — NOVO
+- `services/program.ts` — createProgram, listPrograms, listProgramsByTenant
+- `lib/validations/program.ts` — tenantId optional, tenantIds array
+- `app/superadmin/programs/page.tsx` — interface, columns, labels, form
+
+### ✅ Changes Etapa 5.2: Capacidade por Sessão (Label)
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Label da coluna alterado para "Capacidade Máxima por Sessão (pessoas simultâneas)"
+- ✅ Help text atualizado no formulário de criação
+
+**Arquivos Modificados:**
+
+- `app/superadmin/programs/page.tsx` — labels e help text (implementado junto com Etapa 5.1)
+
+### ✅ Changes Etapa 5.3: Remover Logs de Acesso
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Item "Logs de Acesso" removido do menu SUPER_ADMIN em `lib/config/menu.ts`
+- ✅ Página de logs substituída por redirecionamento para `/dashboard`
+
+**Arquivos Modificados:**
+
+- `lib/config/menu.ts` — removido item Logs de Acesso
+- `app/superadmin/logs/page.tsx` — substituído por redirect
+
+### ✅ Changes Etapa 5.4: Administradores no Detalhe do Tenant
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ `getTenantById` agora busca usuários com role TENANT_ADMIN via UserRole→UserAccount join
+- ✅ Retorna array `admins` com id, name, email, active, createdAt
+- ✅ Nova aba "Administradores" na página de detalhe do tenant
+- ✅ Exibe lista com nome, email, badge de status (ativo/inativo), data de criação
+
+**Arquivos Modificados:**
+
+- `services/tenant.ts` — getTenantById com query de admins
+- `app/superadmin/tenants/[id]/page.tsx` — AdminItem interface, aba Administradores
+
+### ✅ Changes Etapa 5.5: Remover Campo Logo URL
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Removido campo `logoUrl` do wizard de criação de tenant (step 1 e step 4 review)
+- ✅ Removido `logoUrl` da página de edição de tenant (state, fetch, validação, payload, FormField)
+- ✅ Removido `logoUrl` da página de configurações do admin (state, fetchSettings, useEffect, validação, PATCH body, FormField)
+
+**Arquivos Modificados:**
+
+- `app/superadmin/tenants/new/page.tsx` — removido logoUrl do formulário e review
+- `app/superadmin/tenants/[id]/edit/page.tsx` — removido logoUrl completo
+- `app/admin/settings/page.tsx` — removido logoUrl completo
+
+### ✅ Changes Etapa 5.6: Visualização de Programas para Tenant Admin (Read-Only)
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Criado endpoint `GET /api/tenant-admin/programs` com `requireRole(["TENANT_ADMIN"])`
+- ✅ Endpoint usa `listProgramsByTenant(user.tenantId)` para retornar apenas programas vinculados
+- ✅ Criada página `/admin/programs` com visualização em cards (read-only)
+- ✅ Cards exibem: nome, duração, período, capacidade, status, contadores de slots e agendamentos
+- ✅ Busca por nome disponível, badges de contagem total e ativos
+- ✅ Sem botões de criação, edição ou exclusão (apenas visualização)
+- ✅ Item "Programas" adicionado ao menu TENANT_ADMIN apontando para `/admin/programs`
+
+**Arquivos Criados:**
+
+- `app/api/tenant-admin/programs/route.ts` — NOVO
+- `app/admin/programs/page.tsx` — NOVO
+
+**Arquivos Modificados:**
+
+- `lib/config/menu.ts` — adicionado item Programas ao menu TENANT_ADMIN
+
+---
+
+## CHANGES PARTE 4: Correções do Therapist ✅
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026  
+**Estimativa:** 1 semana  
+**Perfis impactados:** THERAPIST
+
+### ✅ Changes Etapa 4.1: Correção da Visualização de Disponibilidade
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Cards de slots agora têm padding e font-size maiores em desktop (`lg:p-2.5`, `lg:text-sm`)
+- ✅ Texto do programa e local não truncam em telas grandes (`lg:whitespace-normal`)
+- ✅ Font-size do cabeçalho dos dias aumentado em desktop (`lg:text-sm`)
+- ✅ Implementada detecção de largura de tela via `window.innerWidth` com resize listener
+- ✅ Em telas >= 1700px sem slots no sábado/domingo: grid exibe apenas 5 colunas (seg-sex)
+- ✅ Em telas >= 1700px com slots no fim de semana: mantém 7 colunas
+- ✅ Grid responsivo dinâmico (`lg:grid-cols-5` ou `lg:grid-cols-7`)
+
+**Arquivos Modificados:**
+
+- `app/therapist/availability/page.tsx` — lógica de detecção de largura, grid dinâmico, melhorias CSS
+
+### ✅ Changes Etapa 4.2: Remover Dashboard do Therapist — Home = Calendário
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ `getRedirectByRole()` alterada — THERAPIST agora retorna `/therapist/calendar`
+- ✅ Middleware `proxy.ts` atualizado — THERAPIST acessando `/dashboard` é redirecionado para `/therapist/calendar`
+- ✅ Item "Home" removido do menu THERAPIST em `lib/config/menu.ts`
+- ✅ "Calendário" é agora o primeiro item do menu THERAPIST
+
+**Arquivos Modificados:**
+
+- `lib/hooks/useAuth.ts` — `getRedirectByRole()` retorna `/therapist/calendar` para THERAPIST
+- `proxy.ts` — redirect de `/dashboard` para `/therapist/calendar` quando role é THERAPIST
+- `lib/config/menu.ts` — removido item "Home" do menu THERAPIST
+
+### ✅ Changes Etapa 4.3: Responsividade do Seletor de Visualização no Calendário
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Barra de navegação do calendário usa `flex-col xl:flex-row` — quebra de linha abaixo de 1280px
+- ✅ Toggle de visualização (Dia/Semana/Mês) centralizado quando em coluna
+- ✅ Gap adequado (`gap-4`) entre navegação e toggle
+- ✅ Toggle com `shrink-0` para não comprimir botões
+
+**Arquivos Modificados:**
+
+- `app/therapist/calendar/page.tsx` — layout responsivo da barra de navegação + correções de classes Tailwind
+
+### ✅ Changes Etapa 4.4: Responsividade do Histórico de Agendamentos
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Botões do header empilham em mobile com `flex-wrap` e `flex-1 sm:flex-none`
+- ✅ Stats cards adaptam grid: `grid-cols-1 xs:grid-cols-2 sm:grid-cols-4`
+- ✅ Gráfico de barras envolvido com `overflow-x-auto` e `min-w-75` para scroll horizontal em mobile
+- ✅ Barras individuais com `min-w-10` para garantir legibilidade
+- ✅ Gap dos filtros ajustado: `gap-3 sm:gap-4`
+
+**Arquivos Modificados:**
+
+- `app/therapist/history/page.tsx` — responsividade do header, stats, gráfico e filtros
+
+---
+
+## CHANGES PARTE 3: Correções do Employee ✅
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026  
+**Estimativa:** 0.5 semana  
+**Perfis impactados:** EMPLOYEE
+
+### ✅ Changes Etapa 3.1: Remover Home do Employee e Tornar Agendamentos a Página Inicial
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ `getRedirectByRole()` alterada — EMPLOYEE agora retorna `/appointments` ao invés de `/dashboard`
+- ✅ Middleware `proxy.ts` atualizado — EMPLOYEE acessando `/dashboard` é redirecionado para `/appointments`
+- ✅ Item "Home" removido do menu EMPLOYEE em `lib/config/menu.ts`
+- ✅ "Meus Agendamentos" é agora o primeiro item do menu e fica ativo ao acessar
+
+**Arquivos Modificados:**
+
+- `lib/hooks/useAuth.ts` — `getRedirectByRole()` retorna `/appointments` para EMPLOYEE
+- `proxy.ts` — redirect de `/dashboard` para `/appointments` quando role é EMPLOYEE
+- `lib/config/menu.ts` — removido item "Home" do menu EMPLOYEE
+
+### ✅ Changes Etapa 3.2: Correção do Perfil do Employee
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Removidos os 4 cards de estatísticas (Total, Realizados, Cancelados, Frequência) da página `/profile`
+- ✅ Interface `EmployeeProfile` corrigida para refletir estrutura real da API (`user`, `employee`, `stats`)
+- ✅ Campo "Email" corrigido — agora lê de `profile.user.email` (antes `profile.email` estava vazio)
+- ✅ Campo "Empresa" corrigido — agora lê de `profile.employee.tenantName` (antes `profile.tenant.name` estava vazio)
+- ✅ Inicialização do campo nome corrigida para usar `profile.employee.name`
+- ✅ Atualização do estado após salvar corrigida para atualizar ambos `employee.name` e `user.displayName`
+- ✅ Imports não utilizados removidos (`CalendarCheck`, `XCircle`, `TrendingUp`)
+
+**Arquivos Modificados:**
+
+- `app/profile/page.tsx` — removidos stats cards, corrigido mapeamento de dados da API
+
+### ✅ Changes Etapa 3.3: Correção do Foco da Sidebar — Novo Agendamento
+
+**Status:** Concluída (resolvida antecipadamente na Changes Etapa 1.4)  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Já corrigido na Changes Etapa 1.4 — `isActive()` usa `pathname === href` (match exato)
+- ✅ `/appointments/new` não ativa `/appointments` simultaneamente
+- ✅ Verificado: navegação entre itens destaca corretamente apenas o item atual
+
+**Arquivos:** Nenhuma alteração necessária (já resolvido)
+
+---
+
+## CHANGES PARTE 2: Correções de Autenticação e Cadastro ✅
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026  
+**Estimativa:** 0.5 semana  
+**Perfis impactados:** EMPLOYEE (cadastro), Todos (reset de senha)
+
+### ✅ Changes Etapa 2.1: Validação de Conta Existente no Envio de Email
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Criada função `checkExistingAccount()` no serviço de autenticação
+- ✅ API `POST /api/auth/magic-link/request` verifica conta existente antes de gerar token
+  - Retorna 409 com mensagem "Já existe uma conta cadastrada com esse email. Faça login." e `code: "ACCOUNT_EXISTS"`
+- ✅ API `POST /api/auth/forgot-password` verifica se conta está inativa antes de gerar token de reset
+  - Retorna 403 com mensagem "Sua conta está inativa. Entre em contato com o RH da sua empresa." e `code: "ACCOUNT_INACTIVE"`
+  - Conta inexistente continua retornando sucesso genérico (segurança)
+- ✅ Página `/signup` exibe Alert de erro com link "Ir para login →" quando `code === "ACCOUNT_EXISTS"`
+- ✅ Página `/forgot-password` exibe Alert de warning com mensagem detalhada quando `code === "ACCOUNT_INACTIVE"`
+
+**Arquivos Modificados:**
+
+- `services/auth.ts` — adicionada função `checkExistingAccount()`
+- `app/api/auth/magic-link/request/route.ts` — verificação de conta existente (409)
+- `app/api/auth/forgot-password/route.ts` — verificação de conta inativa (403)
+- `app/signup/page.tsx` — tratamento de `ACCOUNT_EXISTS` com link para login
+- `app/forgot-password/page.tsx` — tratamento de `ACCOUNT_INACTIVE` com mensagem orientativa
+
+### ✅ Changes Etapa 2.2: Correção do Checkbox de Termos de Uso
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Criado arquivo placeholder `public/assets/termos-de-uso.pdf`
+- ✅ Texto do checkbox atualizado para incluir link clicável: "Li e aceito os [Termos de Uso] e política de privacidade"
+- ✅ Link abre/baixa o PDF `termos-de-uso.pdf` em nova aba
+- ✅ Componente `Checkbox` corrigido — div visual agora está envolvido em `<label htmlFor>`, garantindo que click no quadrado marca/desmarca
+- ✅ Click no texto do label também marca/desmarca corretamente
+- ✅ Tipo de `label` alterado para `string | React.ReactNode` no Checkbox e FormField
+- ✅ Classes Tailwind atualizadas para syntax v4 moderna
+
+**Arquivos Modificados:**
+
+- `components/ui/Checkbox.tsx` — reestruturado com `<label>` envolvendo input visual
+- `components/molecules/FormField.tsx` — tipo `label` aceita `ReactNode`
+- `app/signup/complete/page.tsx` — label do checkbox com link para termos
+
+**Arquivos Criados:**
+
+- `public/assets/termos-de-uso.pdf` (placeholder)
+
+---
+
+## CHANGES PARTE 1: Correções Gerais de UI/UX ✅
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026  
+**Estimativa:** 1 semana  
+**Perfis impactados:** Todos
+
+### ✅ Changes Etapa 1.1: Limpeza da Sidebar — Remover Itens Inválidos
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Menu EMPLOYEE auditado — todos os itens possuem páginas existentes
+- ✅ Menu THERAPIST auditado — todos os itens possuem páginas existentes
+- ✅ Menu TENANT_ADMIN auditado — removidos `/admin/appointments` e `/admin/programs` (páginas inexistentes)
+- ✅ Menu SUPER_ADMIN auditado — removidos `/superadmin/users`, `/superadmin/appointments` e `/superadmin/reports` (páginas inexistentes)
+
+**Arquivos Modificados:**
+
+- `lib/config/menu.ts`
+
+### ✅ Changes Etapa 1.2: Substituição da Logo — Usar Imagem Oficial
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Imagem de logo copiada de `/assets` para `/public/logo.jpeg`
+- ✅ Componente Navbar atualizado com `<Image>` do Next.js
+- ✅ Texto "Wellness Hub" mantido ao lado da imagem
+- ✅ Link para `/dashboard` preservado
+- ✅ Imagem otimizada pelo Next.js `<Image>` com `priority`
+
+**Arquivos Modificados:**
+
+- `components/layouts/Navbar.tsx`
+- `public/logo.jpeg` (novo)
+
+### ✅ Changes Etapa 1.3: Remover Notificações e User Menu do Header
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Botão de notificações (sino com badge) removido do Navbar
+- ✅ Bloco de avatar + nome + email (UserMenu) removido do Navbar
+- ✅ UserMenu removido do barrel export de layouts
+- ✅ Props `user` e `notificationCount` removidas do NavbarProps e DashboardLayoutProps
+- ✅ Layout do Navbar ajustado para não deixar espaço vazio
+- ✅ Nenhuma referência quebrada no restante do código
+
+**Arquivos Modificados:**
+
+- `components/layouts/Navbar.tsx`
+- `components/layouts/DashboardLayout.tsx`
+- `components/layouts/index.ts`
+- `app/layouts-showcase/page.tsx`
+
+### ✅ Changes Etapa 1.4: Botão de Sair na Sidebar com Modal de Confirmação
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Botão "Sair" adicionado abaixo da nav, antes do footer, com ícone `LogOut` (vermelho)
+- ✅ Modal de confirmação usando componente `Modal` existente
+- ✅ Texto: "Tem certeza que deseja sair? Sua sessão será encerrada."
+- ✅ Botões "Cancelar" (ghost) e "Sair" (danger)
+- ✅ `signOut()` do NextAuth com `callbackUrl: '/login'`
+- ✅ **Fix adicional:** `isActive()` corrigido para usar `pathname === href` (match exato) — resolve Etapa 3.3 do Changes antecipadamente
+
+**Arquivos Modificados:**
+
+- `components/layouts/Sidebar.tsx`
+
+### ✅ Changes Etapa 1.5: Correção dos Inputs Select — Texto Visível
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Altura fixa `h-10` alterada para `min-h-10` — permite expansão do conteúdo
+- ✅ Adicionado `truncate` para texto longo exibir ellipsis em vez de ocultar
+
+**Arquivos Modificados:**
+
+- `components/ui/Select.tsx`
+
+### ✅ Changes Etapa 1.6: Componente de Tabela Padrão Reutilizável (DataTable)
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Componente `DataTable` genérico criado com TypeScript generics
+- ✅ Props: `columns[]` (header, accessor, render, sortable, className, minWidth), `data[]`, `loading`, `emptyMessage`
+- ✅ Renderização customizada de células via `render` function
+- ✅ Ordenação por coluna (asc/desc/none) com ícones visuais
+- ✅ Loading state com skeleton rows animados
+- ✅ Empty state integrado com componente `EmptyState`
+- ✅ Integração com `Pagination` existente (via prop `pagination`)
+- ✅ Integração com `SearchBar` existente (via prop `search`)
+- ✅ Responsividade via scroll horizontal (`overflow-x-auto`)
+- ✅ Suporte a `onRowClick` para linhas clicáveis
+- ✅ Exportado no barrel `components/molecules/index.ts`
+
+**Arquivos Criados:**
+
+- `components/molecules/DataTable.tsx`
+
+**Arquivos Modificados:**
+
+- `components/molecules/index.ts`
+
+### ✅ Changes Etapa 1.7: Correção do Scroll — Sidebar e Header Fixos
+
+**Status:** Concluída  
+**Data de Conclusão:** 13 de março de 2026
+
+**Realizado:**
+
+- ✅ Navbar fixo no topo com `fixed top-0 left-0 right-0 z-40`
+- ✅ Sidebar fixa na lateral com `fixed left-0 z-30`, abaixo do Navbar (`lg:top-16 lg:h-[calc(100vh-4rem)]`)
+- ✅ Conteúdo principal com `pt-16` e `lg:ml-64` para compensar fixos
+- ✅ Sidebar não sobrepõe o header (z-index hierárquico: navbar=40, sidebar=30)
+- ✅ Overlay mobile da sidebar continua funcional (z-50 quando aberta)
+- ✅ Testável em todos os breakpoints
+
+**Arquivos Modificados:**
+
+- `components/layouts/DashboardLayout.tsx`
+- `components/layouts/Sidebar.tsx`
 
 ---
 

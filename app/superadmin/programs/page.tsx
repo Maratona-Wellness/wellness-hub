@@ -15,12 +15,13 @@ import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Text } from "@/components/ui/Text";
-import { Spinner } from "@/components/ui/Spinner";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { SearchBar } from "@/components/molecules/SearchBar";
-import { Pagination } from "@/components/molecules/Pagination";
-import { EmptyState } from "@/components/molecules/EmptyState";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/molecules/DataTable";
 import { Card } from "@/components/molecules/Card";
 import { Modal, ModalFooter } from "@/components/molecules/Modal";
 import { useToast, ToastContainer } from "@/components/molecules/Toast";
@@ -29,7 +30,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 
 interface ProgramListItem {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
   name: string;
   sessionDurationMinutes: number;
   dayStart: string;
@@ -38,7 +39,12 @@ interface ProgramListItem {
   active: boolean;
   createdAt: string;
   updatedAt: string;
-  tenant: { id: string; name: string; domain: string };
+  tenant: { id: string; name: string; domain: string } | null;
+  tenantPrograms: Array<{
+    id: string;
+    active: boolean;
+    tenant: { id: string; name: string };
+  }>;
   _count: {
     availabilitySlots: number;
     appointments: number;
@@ -193,8 +199,6 @@ export default function ProgramsPage() {
 
     if (!formData.name.trim() || formData.name.length < 2)
       errors.name = "O nome deve ter pelo menos 2 caracteres";
-    if (formModal.mode === "create" && !formData.tenantId)
-      errors.tenantId = "Selecione uma empresa";
     if (
       formData.sessionDurationMinutes < 10 ||
       formData.sessionDurationMinutes > 480
@@ -343,142 +347,170 @@ export default function ProgramsPage() {
           </Card>
 
           {/* Content */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" />
-            </div>
-          ) : programs.length === 0 ? (
-            <EmptyState
-              icon={<Package size={48} />}
-              title="Nenhum programa encontrado"
-              description={
-                search || statusFilter !== "all" || tenantFilter
-                  ? "Tente ajustar os filtros de busca"
-                  : "Crie o primeiro programa da plataforma"
-              }
-              action={
-                !search && statusFilter === "all" && !tenantFilter
-                  ? { label: "Novo Programa", onClick: openCreateModal }
-                  : undefined
-              }
-            />
-          ) : (
-            <>
-              <Card className="overflow-hidden p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left px-6 py-3 font-medium text-gray-600">
-                          Programa
-                        </th>
-                        <th className="text-left px-6 py-3 font-medium text-gray-600">
-                          <Building2 className="h-4 w-4 inline mr-1" />
-                          Empresa
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <Clock className="h-4 w-4 inline mr-1" />
-                          Duração
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          Horário
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          Capacidade
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          Status
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <Calendar className="h-4 w-4 inline mr-1" />
-                          Slots
-                        </th>
-                        <th className="text-right px-6 py-3 font-medium text-gray-600">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {programs.map((program) => (
-                        <tr
-                          key={program.id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50">
-                                <Package className="h-5 w-5 text-purple-600" />
-                              </div>
-                              <span className="font-medium text-(--color-secondary)">
-                                {program.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-gray-600">
-                            {program.tenant.name}
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {program.sessionDurationMinutes} min
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {program.dayStart} - {program.dayEnd}
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {program.dailyCapacityPerLocation}/local
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <Badge
-                              variant={program.active ? "success" : "error"}
-                            >
-                              {program.active ? "Ativo" : "Inativo"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {program._count.availabilitySlots}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditModal(program)}
-                                title="Editar"
-                              >
-                                <Pencil size={16} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setToggleModal(program)}
-                                title={program.active ? "Desativar" : "Ativar"}
-                              >
-                                <Power
-                                  size={16}
-                                  className={
-                                    program.active
-                                      ? "text-red-500"
-                                      : "text-green-500"
-                                  }
-                                />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+          {(() => {
+            const programColumns: DataTableColumn<ProgramListItem>[] = [
+              {
+                header: "Programa",
+                accessor: "name",
+                sortable: true,
+                render: (_, row) => (
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50">
+                      <Package className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <span className="font-medium text-(--color-secondary)">
+                      {row.name}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                header: "Empresas",
+                accessor: "tenantId",
+                sortable: true,
+                render: (_, row) => {
+                  const linkedTenants = row.tenantPrograms || [];
+                  if (linkedTenants.length === 0) {
+                    return <span className="text-gray-400 italic">Global</span>;
+                  }
+                  if (linkedTenants.length === 1) {
+                    return (
+                      <span className="text-gray-600">
+                        {linkedTenants[0].tenant.name}
+                      </span>
+                    );
+                  }
+                  return (
+                    <span
+                      className="text-gray-600"
+                      title={linkedTenants
+                        .map((tp) => tp.tenant.name)
+                        .join(", ")}
+                    >
+                      {linkedTenants[0].tenant.name}{" "}
+                      <Badge variant="info">+{linkedTenants.length - 1}</Badge>
+                    </span>
+                  );
+                },
+              },
+              {
+                header: "Duração",
+                accessor: "sessionDurationMinutes",
+                sortable: true,
+                className: "text-center",
+                hideBelow: "sm",
+                render: (val) => (
+                  <span className="text-gray-600">{String(val)} min</span>
+                ),
+              },
+              {
+                header: "Horário",
+                accessor: "dayStart",
+                className: "text-center",
+                hideBelow: "md",
+                render: (_, row) => (
+                  <span className="text-gray-600">
+                    {row.dayStart} - {row.dayEnd}
+                  </span>
+                ),
+              },
+              {
+                header: "Capacidade",
+                accessor: "dailyCapacityPerLocation",
+                className: "text-center",
+                hideBelow: "md",
+                render: (val) => (
+                  <span className="text-gray-600">
+                    {String(val)} por sessão
+                  </span>
+                ),
+              },
+              {
+                header: "Status",
+                accessor: "active",
+                className: "text-center",
+                render: (_, row) => (
+                  <Badge variant={row.active ? "success" : "error"}>
+                    {row.active ? "Ativo" : "Inativo"}
+                  </Badge>
+                ),
+              },
+              {
+                header: "Slots",
+                accessor: "id",
+                className: "text-center",
+                hideBelow: "lg",
+                render: (_, row) => (
+                  <span className="text-gray-600">
+                    {row._count.availabilitySlots}
+                  </span>
+                ),
+              },
+              {
+                header: "Ações",
+                accessor: "id",
+                className: "text-right",
+                render: (_, row) => (
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(row);
+                      }}
+                      title="Editar"
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setToggleModal(row);
+                      }}
+                      title={row.active ? "Desativar" : "Ativar"}
+                    >
+                      <Power
+                        size={16}
+                        className={
+                          row.active ? "text-red-500" : "text-green-500"
+                        }
+                      />
+                    </Button>
+                  </div>
+                ),
+              },
+            ];
 
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                totalItems={total}
-                itemsPerPage={limit}
+            return (
+              <DataTable<ProgramListItem>
+                columns={programColumns}
+                data={programs}
+                loading={loading}
+                rowKey="id"
+                emptyMessage="Nenhum programa encontrado"
+                emptyIcon={<Package size={48} />}
+                emptyAction={
+                  !search && statusFilter === "all" && !tenantFilter
+                    ? { label: "Novo Programa", onClick: openCreateModal }
+                    : undefined
+                }
+                pagination={
+                  totalPages > 1
+                    ? {
+                        currentPage: page,
+                        totalPages,
+                        totalItems: total,
+                        itemsPerPage: limit,
+                        onPageChange: setPage,
+                      }
+                    : undefined
+                }
               />
-            </>
-          )}
+            );
+          })()}
         </div>
 
         {/* Create/Edit Modal */}
@@ -508,7 +540,7 @@ export default function ProgramsPage() {
             {formModal.mode === "create" && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-(--color-secondary)">
-                  Empresa <span className="text-red-500 ml-1">*</span>
+                  Empresa (opcional)
                 </label>
                 <Select
                   value={formData.tenantId}
@@ -516,11 +548,15 @@ export default function ProgramsPage() {
                     setFormData({ ...formData, tenantId: e.target.value })
                   }
                   options={[
-                    { value: "", label: "Selecione uma empresa..." },
+                    { value: "", label: "Programa global (sem vínculo)" },
                     ...tenants.map((t) => ({ value: t.id, label: t.name })),
                   ]}
                   error={formErrors.tenantId}
                 />
+                <p className="text-xs text-gray-500">
+                  Deixe vazio para criar um programa global que pode ser
+                  vinculado a múltiplas empresas
+                </p>
               </div>
             )}
 
@@ -576,7 +612,7 @@ export default function ProgramsPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-(--color-secondary)">
-                Capacidade Diária por Local{" "}
+                Capacidade Máxima por Sessão (pessoas simultâneas){" "}
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <Input
@@ -593,7 +629,8 @@ export default function ProgramsPage() {
                 error={formErrors.dailyCapacityPerLocation}
               />
               <p className="text-xs text-gray-500">
-                Número máximo de sessões por dia em cada localização
+                Número máximo de pessoas simultâneas por sessão de cada
+                terapeuta
               </p>
             </div>
           </div>

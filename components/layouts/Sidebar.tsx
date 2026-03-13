@@ -3,13 +3,16 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils/cn";
 import {
   type MenuItem,
   type RoleType,
   getMenuForRole,
 } from "@/lib/config/menu";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, LogOut, X } from "lucide-react";
+import { Modal, ModalFooter } from "@/components/molecules/Modal";
+import { Button } from "@/components/ui/Button";
 
 export interface SidebarProps {
   role: RoleType;
@@ -27,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname();
   const menuItems = getMenuForRole(role);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const toggleExpanded = (label: string) => {
     setExpandedItems((prev) =>
@@ -37,7 +41,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const isActive = (href: string) => {
-    return pathname === href || pathname.startsWith(href + "/");
+    return pathname === href;
+  };
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
   };
 
   const renderMenuItem = (item: MenuItem, depth = 0) => {
@@ -121,9 +129,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300",
-          "lg:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          "fixed left-0 z-30 w-64 bg-(--header-bg-color) border-r border-gray-200 transition-transform duration-300",
+          "lg:translate-x-0 lg:top-16 lg:h-[calc(100vh-4rem)]",
+          "top-0 h-screen",
+          isOpen ? "translate-x-0 z-50" : "-translate-x-full",
           className,
         )}
       >
@@ -149,14 +158,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </ul>
           </nav>
 
-          {/* Footer */}
+          {/* Logout Button */}
           <div className="p-4 border-t border-gray-200">
+            <button
+              onClick={() => setShowLogoutModal(true)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group hover:bg-red-50 w-full text-left"
+            >
+              <LogOut className="h-5 w-5 shrink-0 text-red-600 group-hover:text-red-700" />
+              <span className="flex-1 text-sm font-medium text-red-600 group-hover:text-red-700">
+                Sair
+              </span>
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div className="px-4 pb-4">
             <p className="text-xs text-gray-500 text-center">
               Wellness Hub v1.0
             </p>
           </div>
         </div>
       </aside>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title="Confirmar saída"
+        size="sm"
+      >
+        <p className="text-sm text-gray-600">
+          Tem certeza que deseja sair? Sua sessão será encerrada.
+        </p>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={handleLogout}>
+            Sair
+          </Button>
+        </ModalFooter>
+      </Modal>
     </>
   );
 };

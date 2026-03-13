@@ -51,7 +51,6 @@ export default function LayoutsShowcasePage() {
         email: "demo@wellness.com",
         role: selectedRole,
       }}
-      notificationCount={3}
     >
       <div className="space-y-6">
         {/* Header */}

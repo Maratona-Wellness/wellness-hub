@@ -259,7 +259,21 @@ export default function CompleteSignupPage() {
             {/* Aceite de termos */}
             <FormField
               type="checkbox"
-              label="Li e aceito os termos de uso e política de privacidade"
+              label={
+                <span>
+                  Li e aceito os{" "}
+                  <a
+                    href="/assets/termos-de-uso.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-(--color-accent) hover:underline font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Termos de Uso
+                  </a>{" "}
+                  e política de privacidade
+                </span>
+              }
               error={fieldErrors.acceptTerms}
               checkboxProps={{
                 checked: acceptTerms,

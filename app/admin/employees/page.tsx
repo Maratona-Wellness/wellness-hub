@@ -6,8 +6,6 @@ import {
   Search,
   Power,
   Key,
-  ChevronLeft,
-  ChevronRight,
   XCircle,
   Download,
   CheckCircle,
@@ -18,7 +16,6 @@ import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { Badge } from "@/components/ui/Badge";
-import { Spinner } from "@/components/ui/Spinner";
 import { Select } from "@/components/ui/Select";
 import {
   Card,
@@ -27,7 +24,10 @@ import {
   CardTitle,
 } from "@/components/molecules/Card";
 import { SearchBar } from "@/components/molecules/SearchBar";
-import { EmptyState } from "@/components/molecules/EmptyState";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/molecules/DataTable";
 import { Modal, ModalFooter } from "@/components/molecules/Modal";
 import { Alert } from "@/components/molecules/Alert";
 import { useToast, ToastContainer } from "@/components/molecules/Toast";
@@ -265,165 +265,139 @@ export default function TenantAdminEmployeesPage() {
           </Card>
 
           {/* Table */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" />
-            </div>
-          ) : employees.length === 0 ? (
-            <EmptyState
-              icon={<Users />}
-              title="Nenhum funcionário encontrado"
-              description={
-                search
-                  ? "Tente ajustar os filtros de busca"
-                  : "Nenhum funcionário cadastrado"
-              }
-            />
-          ) : (
-            <>
-              <Card className="overflow-hidden p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left px-6 py-3 font-medium text-gray-600">
-                          Funcionário
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          Status
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <Calendar className="h-4 w-4 inline mr-1" />
-                          Agend.
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <CheckCircle className="h-4 w-4 inline mr-1" />
-                          Concl.
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <XCircle className="h-4 w-4 inline mr-1" />
-                          Ausências
-                        </th>
-                        <th className="text-left px-6 py-3 font-medium text-gray-600">
-                          Último Acesso
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {employees.map((emp) => (
-                        <tr
-                          key={emp.id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div>
-                              <p className="font-medium text-(--color-secondary)">
-                                {emp.name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {emp.email}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <Badge variant={emp.active ? "success" : "error"}>
-                              {emp.active ? "Ativo" : "Inativo"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {emp.totalAppointments}
-                          </td>
-                          <td className="px-6 py-4 text-center text-green-600 font-medium">
-                            {emp.completedAppointments}
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span
-                              className={
-                                emp.noShows > 0
-                                  ? "text-red-600 font-medium"
-                                  : "text-gray-600"
-                              }
-                            >
-                              {emp.noShows}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-gray-500 text-sm">
-                            {emp.lastLoginAt
-                              ? formatDate(emp.lastLoginAt)
-                              : "Nunca acessou"}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setToggleModal(emp);
-                                }}
-                                title={emp.active ? "Desativar" : "Ativar"}
-                              >
-                                <Power
-                                  className={`h-4 w-4 ${emp.active ? "text-red-500" : "text-green-500"}`}
-                                />
-                              </Button>
-                              {emp.userId && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setResetModal(emp);
-                                  }}
-                                  title="Resetar senha"
-                                >
-                                  <Key className="h-4 w-4 text-gray-500" />
-                                </Button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between">
-                  <Text className="text-sm text-gray-500">
-                    Mostrando {(page - 1) * limit + 1} -{" "}
-                    {Math.min(page * limit, total)} de {total} funcionários
-                  </Text>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={page <= 1}
-                      onClick={() => setPage(page - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm font-medium">
-                      {page} / {totalPages}
-                    </span>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={page >= totalPages}
-                      onClick={() => setPage(page + 1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+          {(() => {
+            const employeeColumns: DataTableColumn<EmployeeItem>[] = [
+              {
+                header: "Funcionário",
+                accessor: "name",
+                sortable: true,
+                render: (_, row) => (
+                  <div>
+                    <p className="font-medium text-(--color-secondary)">
+                      {row.name}
+                    </p>
+                    <p className="text-xs text-gray-500">{row.email}</p>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                ),
+              },
+              {
+                header: "Status",
+                accessor: "active",
+                render: (_, row) => (
+                  <Badge variant={row.active ? "success" : "error"}>
+                    {row.active ? "Ativo" : "Inativo"}
+                  </Badge>
+                ),
+              },
+              {
+                header: "Agend.",
+                accessor: "totalAppointments",
+                sortable: true,
+                className: "text-center",
+                hideBelow: "sm",
+              },
+              {
+                header: "Concl.",
+                accessor: "completedAppointments",
+                sortable: true,
+                className: "text-center",
+                hideBelow: "md",
+                render: (val) => (
+                  <span className="text-green-600 font-medium">
+                    {String(val)}
+                  </span>
+                ),
+              },
+              {
+                header: "Ausências",
+                accessor: "noShows",
+                sortable: true,
+                className: "text-center",
+                hideBelow: "md",
+                render: (val, row) => (
+                  <span
+                    className={
+                      row.noShows > 0
+                        ? "text-red-600 font-medium"
+                        : "text-gray-600"
+                    }
+                  >
+                    {String(val)}
+                  </span>
+                ),
+              },
+              {
+                header: "Último Acesso",
+                accessor: "lastLoginAt",
+                sortable: true,
+                hideBelow: "lg",
+                render: (_, row) => (
+                  <span className="text-gray-500 text-sm">
+                    {row.lastLoginAt
+                      ? formatDate(row.lastLoginAt)
+                      : "Nunca acessou"}
+                  </span>
+                ),
+              },
+              {
+                header: "Ações",
+                accessor: "id",
+                className: "text-center",
+                render: (_, row) => (
+                  <div className="flex justify-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setToggleModal(row);
+                      }}
+                      title={row.active ? "Desativar" : "Ativar"}
+                    >
+                      <Power
+                        className={`h-4 w-4 ${row.active ? "text-red-500" : "text-green-500"}`}
+                      />
+                    </Button>
+                    {row.userId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setResetModal(row);
+                        }}
+                        title="Resetar senha"
+                      >
+                        <Key className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                ),
+              },
+            ];
+
+            return (
+              <DataTable<EmployeeItem>
+                columns={employeeColumns}
+                data={employees}
+                loading={loading}
+                rowKey="id"
+                emptyMessage="Nenhum funcionário encontrado"
+                emptyIcon={<Users />}
+                pagination={
+                  totalPages > 1
+                    ? {
+                        currentPage: page,
+                        totalPages,
+                        totalItems: total,
+                        itemsPerPage: limit,
+                        onPageChange: setPage,
+                      }
+                    : undefined
+                }
+              />
+            );
+          })()}
         </div>
 
         {/* Toggle Status Modal */}

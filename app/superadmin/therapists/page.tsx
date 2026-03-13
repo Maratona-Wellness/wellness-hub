@@ -7,10 +7,11 @@ import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Text } from "@/components/ui/Text";
-import { Spinner } from "@/components/ui/Spinner";
 import { SearchBar } from "@/components/molecules/SearchBar";
-import { Pagination } from "@/components/molecules/Pagination";
-import { EmptyState } from "@/components/molecules/EmptyState";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/molecules/DataTable";
 import { Card } from "@/components/molecules/Card";
 import { Modal, ModalFooter } from "@/components/molecules/Modal";
 import { useToast, ToastContainer } from "@/components/molecules/Toast";
@@ -183,134 +184,115 @@ export default function TherapistsPage() {
           </Card>
 
           {/* Content */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" />
-            </div>
-          ) : therapists.length === 0 ? (
-            <EmptyState
-              icon={<UserCheck size={48} />}
-              title="Nenhum terapeuta encontrado"
-              description={
-                search || statusFilter !== "all"
-                  ? "Tente ajustar os filtros de busca"
-                  : "Cadastre o primeiro terapeuta da plataforma"
-              }
-              action={
-                !search && statusFilter === "all"
-                  ? {
-                      label: "Cadastrar Terapeuta",
-                      onClick: () => router.push("/superadmin/therapists/new"),
-                    }
-                  : undefined
-              }
-            />
-          ) : (
-            <>
-              {/* Summary */}
-              <Text variant="p" className="text-(--color-text-muted) text-sm">
-                {total} terapeuta{total !== 1 ? "s" : ""} encontrado
-                {total !== 1 ? "s" : ""}
-              </Text>
+          {(() => {
+            const therapistColumns: DataTableColumn<TherapistListItem>[] = [
+              {
+                header: "Nome",
+                accessor: "name",
+                sortable: true,
+                render: (_, row) => (
+                  <div>
+                    <Text variant="p" className="font-medium text-sm">
+                      {row.name}
+                    </Text>
+                    <Text
+                      variant="span"
+                      className="text-(--color-text-muted) text-xs md:hidden"
+                    >
+                      {row.email}
+                    </Text>
+                  </div>
+                ),
+              },
+              {
+                header: "Email",
+                accessor: "email",
+                sortable: true,
+                hideBelow: "md",
+              },
+              {
+                header: "CPF",
+                accessor: "cpf",
+                hideBelow: "lg",
+                render: (_, row) => <span>{formatCPF(row.cpf)}</span>,
+              },
+              {
+                header: "Especialidades",
+                accessor: "specialties",
+                hideBelow: "sm",
+                render: (_, row) =>
+                  row.specialties ? (
+                    <span className="text-(--color-text-muted)">
+                      {row.specialties}
+                    </span>
+                  ) : (
+                    <span className="text-(--color-text-muted) italic">
+                      Não informado
+                    </span>
+                  ),
+              },
+              {
+                header: "Vinculações",
+                accessor: "id",
+                className: "text-center",
+                render: (_, row) => (
+                  <div className="flex items-center justify-center gap-2">
+                    <Building2
+                      size={14}
+                      className="text-(--color-text-muted)"
+                    />
+                    <span className="text-sm">
+                      {row._count.therapistAssignments}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                header: "Status",
+                accessor: "active",
+                className: "text-center",
+                render: (_, row) => (
+                  <Badge variant={row.active ? "success" : "error"}>
+                    {row.active ? "Ativo" : "Inativo"}
+                  </Badge>
+                ),
+              },
+            ];
 
-              {/* Table */}
-              <div className="overflow-x-auto rounded-lg border border-(--color-border)">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-(--color-border) bg-(--color-background-alt)">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-(--color-text-muted)">
-                        Nome
-                      </th>
-                      <th className="hidden px-4 py-3 text-left text-sm font-medium text-(--color-text-muted) md:table-cell">
-                        Email
-                      </th>
-                      <th className="hidden px-4 py-3 text-left text-sm font-medium text-(--color-text-muted) lg:table-cell">
-                        CPF
-                      </th>
-                      <th className="hidden px-4 py-3 text-left text-sm font-medium text-(--color-text-muted) sm:table-cell">
-                        Especialidades
-                      </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                        Vinculações
-                      </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-(--color-border)">
-                    {therapists.map((therapist) => (
-                      <tr
-                        key={therapist.id}
-                        className="hover:bg-(--color-background-alt) transition-colors"
-                        onClick={() =>
-                          router.push(`/superadmin/therapists/${therapist.id}`)
-                        }
-                      >
-                        <td className="px-4 py-3">
-                          <div>
-                            <Text variant="p" className="font-medium text-sm">
-                              {therapist.name}
-                            </Text>
-                            <Text
-                              variant="span"
-                              className="text-(--color-text-muted) text-xs md:hidden"
-                            >
-                              {therapist.email}
-                            </Text>
-                          </div>
-                        </td>
-                        <td className="hidden px-4 py-3 text-sm md:table-cell">
-                          {therapist.email}
-                        </td>
-                        <td className="hidden px-4 py-3 text-sm lg:table-cell">
-                          {formatCPF(therapist.cpf)}
-                        </td>
-                        <td className="hidden px-4 py-3 text-sm sm:table-cell">
-                          {therapist.specialties ? (
-                            <span className="text-(--color-text-muted)">
-                              {therapist.specialties}
-                            </span>
-                          ) : (
-                            <span className="text-(--color-text-muted) italic">
-                              Não informado
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <Building2
-                              size={14}
-                              className="text-(--color-text-muted)"
-                            />
-                            <span className="text-sm">
-                              {therapist._count.therapistAssignments}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge
-                            variant={therapist.active ? "success" : "error"}
-                          >
-                            {therapist.active ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                />
-              )}
-            </>
-          )}
+            return (
+              <DataTable<TherapistListItem>
+                columns={therapistColumns}
+                data={therapists}
+                loading={loading}
+                rowKey="id"
+                emptyMessage="Nenhum terapeuta encontrado"
+                emptyIcon={<UserCheck size={48} />}
+                emptyAction={
+                  !search && statusFilter === "all"
+                    ? {
+                        label: "Cadastrar Terapeuta",
+                        onClick: () =>
+                          router.push("/superadmin/therapists/new"),
+                      }
+                    : undefined
+                }
+                onRowClick={(row) =>
+                  router.push(`/superadmin/therapists/${row.id}`)
+                }
+                pagination={
+                  totalPages > 1
+                    ? {
+                        currentPage: page,
+                        totalPages,
+                        totalItems: total,
+                        itemsPerPage: limit,
+                        onPageChange: setPage,
+                      }
+                    : undefined
+                }
+              />
+            );
+          })()}
         </div>
 
         {/* Toggle Status Modal */}

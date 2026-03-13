@@ -18,6 +18,10 @@ import { Text } from "@/components/ui/Text";
 import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { Card } from "@/components/molecules/Card";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/molecules/DataTable";
 import { useToast, ToastContainer } from "@/components/molecules/Toast";
 import { AuthGuard } from "@/components/AuthGuard";
 import { Select } from "@/components/ui/Select";
@@ -156,36 +160,6 @@ export default function SuperAdminAvailabilityPage() {
 
   const hasActiveFilters = tenantFilter !== "all" || programFilter !== "all";
 
-  // Agrupar por tenant para exibicao
-  const groupedByTenant = groups.reduce(
-    (acc, item) => {
-      if (!acc[item.tenantId]) {
-        acc[item.tenantId] = {
-          tenantName: item.tenantName,
-          programs: [],
-          totalSlots: 0,
-          totalAvailable: 0,
-          totalReserved: 0,
-        };
-      }
-      acc[item.tenantId].programs.push(item);
-      acc[item.tenantId].totalSlots += item.totalSlots;
-      acc[item.tenantId].totalAvailable += item.totalAvailable;
-      acc[item.tenantId].totalReserved += item.totalReserved;
-      return acc;
-    },
-    {} as Record<
-      string,
-      {
-        tenantName: string;
-        programs: GroupedSlot[];
-        totalSlots: number;
-        totalAvailable: number;
-        totalReserved: number;
-      }
-    >,
-  );
-
   // Totais globais
   const globalTotals = groups.reduce(
     (acc, g) => ({
@@ -235,8 +209,8 @@ export default function SuperAdminAvailabilityPage() {
           {/* Filters */}
           <Card>
             <div className="space-y-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
                   <label className="mb-1 block text-sm font-medium text-(--color-text-muted)">
                     Empresa
                   </label>
@@ -252,7 +226,7 @@ export default function SuperAdminAvailabilityPage() {
                     ]}
                   />
                 </div>
-                <div className="flex-1">
+                <div>
                   <label className="mb-1 block text-sm font-medium text-(--color-text-muted)">
                     Programa
                   </label>
@@ -268,7 +242,7 @@ export default function SuperAdminAvailabilityPage() {
                     ]}
                   />
                 </div>
-                <div className="flex-1">
+                <div>
                   <label className="mb-1 block text-sm font-medium text-(--color-text-muted)">
                     Data inicio
                   </label>
@@ -278,7 +252,7 @@ export default function SuperAdminAvailabilityPage() {
                     onChange={(e) => setStartDate(e.target.value)}
                   />
                 </div>
-                <div className="flex-1">
+                <div>
                   <label className="mb-1 block text-sm font-medium text-(--color-text-muted)">
                     Data fim
                   </label>
@@ -353,59 +327,59 @@ export default function SuperAdminAvailabilityPage() {
           ) : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <Card className="p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
                       <Calendar size={20} className="text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-(--color-text-muted)">
+                      <p className="text-xs sm:text-sm text-(--color-text-muted)">
                         Total de Slots
                       </p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-lg sm:text-2xl font-bold">
                         {globalTotals.totalSlots}
                       </p>
                     </div>
                   </div>
                 </Card>
 
-                <Card className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
+                <Card className="p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
                       <TrendingUp size={20} className="text-green-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-(--color-text-muted)">
+                      <p className="text-xs sm:text-sm text-(--color-text-muted)">
                         Disponiveis
                       </p>
-                      <p className="text-2xl font-bold text-green-600">
+                      <p className="text-lg sm:text-2xl font-bold text-green-600">
                         {globalTotals.totalAvailable}
                       </p>
                     </div>
                   </div>
                 </Card>
 
-                <Card className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-100 rounded-lg">
+                <Card className="p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-amber-100 rounded-lg">
                       <Clock size={20} className="text-amber-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-(--color-text-muted)">
+                      <p className="text-xs sm:text-sm text-(--color-text-muted)">
                         Reservados
                       </p>
-                      <p className="text-2xl font-bold text-amber-600">
+                      <p className="text-lg sm:text-2xl font-bold text-amber-600">
                         {globalTotals.totalReserved}
                       </p>
                     </div>
                   </div>
                 </Card>
 
-                <Card className="p-4">
-                  <div className="flex items-center gap-3">
+                <Card className="p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div
-                      className={`p-2 rounded-lg ${globalOccupancy >= 80 ? "bg-red-100" : globalOccupancy >= 50 ? "bg-amber-100" : "bg-green-100"}`}
+                      className={`p-1.5 sm:p-2 rounded-lg ${globalOccupancy >= 80 ? "bg-red-100" : globalOccupancy >= 50 ? "bg-amber-100" : "bg-green-100"}`}
                     >
                       <BarChart3
                         size={20}
@@ -419,11 +393,11 @@ export default function SuperAdminAvailabilityPage() {
                       />
                     </div>
                     <div>
-                      <p className="text-sm text-(--color-text-muted)">
+                      <p className="text-xs sm:text-sm text-(--color-text-muted)">
                         Ocupacao
                       </p>
                       <p
-                        className={`text-2xl font-bold ${globalOccupancy >= 80 ? "text-red-600" : globalOccupancy >= 50 ? "text-amber-600" : "text-green-600"}`}
+                        className={`text-lg sm:text-2xl font-bold ${globalOccupancy >= 80 ? "text-red-600" : globalOccupancy >= 50 ? "text-amber-600" : "text-green-600"}`}
                       >
                         {globalOccupancy}%
                       </p>
@@ -433,127 +407,109 @@ export default function SuperAdminAvailabilityPage() {
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto rounded-lg border border-(--color-border)">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-(--color-border) bg-(--color-background-alt)">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-(--color-text-muted)">
-                        <div className="flex items-center gap-1">
-                          <Building2 size={14} />
-                          Empresa
+              {(() => {
+                const slotColumns: DataTableColumn<GroupedSlot>[] = [
+                  {
+                    header: "Empresa",
+                    accessor: "tenantName",
+                    sortable: true,
+                    render: (_, row) => (
+                      <div className="flex items-center gap-2">
+                        <Building2
+                          size={14}
+                          className="text-(--color-text-muted)"
+                        />
+                        <Text variant="p" className="text-sm font-medium">
+                          {row.tenantName}
+                        </Text>
+                      </div>
+                    ),
+                  },
+                  {
+                    header: "Programa",
+                    accessor: "programName",
+                    sortable: true,
+                    render: (_, row) => (
+                      <div className="flex items-center gap-1">
+                        <Package
+                          size={14}
+                          className="text-(--color-text-muted)"
+                        />
+                        <Text variant="p" className="text-sm font-medium">
+                          {row.programName}
+                        </Text>
+                      </div>
+                    ),
+                  },
+                  {
+                    header: "Duração",
+                    accessor: "sessionDuration",
+                    hideBelow: "sm",
+                    className: "text-center",
+                    render: (_, row) => (
+                      <span className="text-sm text-(--color-text-muted)">
+                        {row.sessionDuration} min
+                      </span>
+                    ),
+                  },
+                  {
+                    header: "Total",
+                    accessor: "totalSlots",
+                    sortable: true,
+                    className: "text-center",
+                    render: (val) => (
+                      <span className="text-sm font-medium">{String(val)}</span>
+                    ),
+                  },
+                  {
+                    header: "Disponíveis",
+                    accessor: "totalAvailable",
+                    sortable: true,
+                    className: "text-center",
+                    render: (val) => (
+                      <Badge variant="success">{String(val)}</Badge>
+                    ),
+                  },
+                  {
+                    header: "Reservados",
+                    accessor: "totalReserved",
+                    hideBelow: "md",
+                    className: "text-center",
+                  },
+                  {
+                    header: "Ocupação",
+                    accessor: "occupancyRate",
+                    sortable: true,
+                    className: "text-center",
+                    render: (_, row) => (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${getOccupancyColor(row.occupancyRate)}`}
+                            style={{
+                              width: `${Math.min(row.occupancyRate, 100)}%`,
+                            }}
+                          />
                         </div>
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-(--color-text-muted)">
-                        <div className="flex items-center gap-1">
-                          <Package size={14} />
-                          Programa
-                        </div>
-                      </th>
-                      <th className="hidden px-4 py-3 text-center text-sm font-medium text-(--color-text-muted) sm:table-cell">
-                        Duracao
-                      </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                        Total
-                      </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                        Disponiveis
-                      </th>
-                      <th className="hidden px-4 py-3 text-center text-sm font-medium text-(--color-text-muted) md:table-cell">
-                        Reservados
-                      </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-(--color-text-muted)">
-                        Ocupacao
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-(--color-border)">
-                    {Object.entries(groupedByTenant).map(
-                      ([tenantId, tenant]) => (
-                        <React.Fragment key={tenantId}>
-                          {/* Tenant header row */}
-                          <tr className="bg-(--color-background-alt)/50">
-                            <td colSpan={7} className="px-4 py-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Building2
-                                    size={16}
-                                    className="text-(--color-text-muted)"
-                                  />
-                                  <Text
-                                    variant="p"
-                                    className="font-semibold text-sm"
-                                  >
-                                    {tenant.tenantName}
-                                  </Text>
-                                </div>
-                                <div className="flex items-center gap-3 text-xs text-(--color-text-muted)">
-                                  <span>
-                                    {tenant.totalSlots} slot
-                                    {tenant.totalSlots !== 1 ? "s" : ""}
-                                  </span>
-                                  <span className="text-green-600 font-medium">
-                                    {tenant.totalAvailable} disponive
-                                    {tenant.totalAvailable !== 1 ? "is" : "l"}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
+                        <span className="text-xs font-medium w-8 text-right">
+                          {row.occupancyRate}%
+                        </span>
+                      </div>
+                    ),
+                  },
+                ];
 
-                          {/* Program rows */}
-                          {tenant.programs.map((prog) => (
-                            <tr
-                              key={`${tenantId}-${prog.programId}`}
-                              className="hover:bg-(--color-background-alt) transition-colors"
-                            >
-                              <td className="px-4 py-3 pl-10 text-sm text-(--color-text-muted)">
-                                —
-                              </td>
-                              <td className="px-4 py-3">
-                                <Text
-                                  variant="p"
-                                  className="text-sm font-medium"
-                                >
-                                  {prog.programName}
-                                </Text>
-                              </td>
-                              <td className="hidden px-4 py-3 text-center text-sm text-(--color-text-muted) sm:table-cell">
-                                {prog.sessionDuration} min
-                              </td>
-                              <td className="px-4 py-3 text-center text-sm font-medium">
-                                {prog.totalSlots}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <Badge variant="success">
-                                  {prog.totalAvailable}
-                                </Badge>
-                              </td>
-                              <td className="hidden px-4 py-3 text-center text-sm md:table-cell">
-                                {prog.totalReserved}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full ${getOccupancyColor(prog.occupancyRate)}`}
-                                      style={{
-                                        width: `${Math.min(prog.occupancyRate, 100)}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-medium w-8 text-right">
-                                    {prog.occupancyRate}%
-                                  </span>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </React.Fragment>
-                      ),
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                return (
+                  <DataTable<GroupedSlot>
+                    columns={slotColumns}
+                    data={groups}
+                    loading={false}
+                    rowKey={(row, i) => `${row.tenantId}-${row.programId}-${i}`}
+                    emptyMessage="Nenhum slot encontrado"
+                    emptyIcon={<Calendar size={48} />}
+                  />
+                );
+              })()}
             </>
           )}
         </div>

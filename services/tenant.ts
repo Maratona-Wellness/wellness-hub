@@ -108,6 +108,34 @@ export async function getTenantById(id: string) {
 
   if (!tenant) return null;
 
+  // Fetch tenant admins (TENANT_ADMIN role users)
+  const adminRoles = await prisma.userRole.findMany({
+    where: {
+      tenantId: id,
+      role: { roleName: "TENANT_ADMIN" },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          active: true,
+          createdAt: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const admins = adminRoles.map((ar) => ({
+    id: ar.user.id,
+    name: ar.user.displayName,
+    email: ar.user.email,
+    active: ar.user.active,
+    createdAt: ar.user.createdAt,
+  }));
+
   // Calcular taxa de utilização (appointments completos / total)
   const [completedAppointments, totalAppointments] = await Promise.all([
     prisma.appointment.count({
@@ -128,6 +156,7 @@ export async function getTenantById(id: string) {
 
   return {
     ...tenant,
+    admins,
     stats: {
       totalEmployees: tenant._count.employees,
       totalLocations: tenant._count.locations,

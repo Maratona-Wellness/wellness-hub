@@ -16,10 +16,11 @@ import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Text } from "@/components/ui/Text";
-import { Spinner } from "@/components/ui/Spinner";
 import { SearchBar } from "@/components/molecules/SearchBar";
-import { Pagination } from "@/components/molecules/Pagination";
-import { EmptyState } from "@/components/molecules/EmptyState";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/molecules/DataTable";
 import { Card } from "@/components/molecules/Card";
 import { Modal, ModalFooter } from "@/components/molecules/Modal";
 import { useToast, ToastContainer } from "@/components/molecules/Toast";
@@ -184,115 +185,103 @@ export default function TenantsPage() {
           </Card>
 
           {/* Table */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" />
-            </div>
-          ) : tenants.length === 0 ? (
-            <EmptyState
-              icon={<Building2 />}
-              title="Nenhuma empresa encontrada"
-              description={
-                search
-                  ? "Tente ajustar os filtros de busca"
-                  : "Cadastre a primeira empresa para começar"
-              }
-              action={
-                !search
-                  ? {
-                      label: "Nova Empresa",
-                      onClick: () => router.push("/superadmin/tenants/new"),
-                    }
-                  : undefined
-              }
-            />
-          ) : (
-            <>
-              <Card className="overflow-hidden p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left px-6 py-3 font-medium text-gray-600">
-                          Empresa
-                        </th>
-                        <th className="text-left px-6 py-3 font-medium text-gray-600">
-                          Domínio
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          Status
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <MapPin className="h-4 w-4 inline mr-1" />
-                          Locais
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <Users className="h-4 w-4 inline mr-1" />
-                          Funcionários
-                        </th>
-                        <th className="text-center px-6 py-3 font-medium text-gray-600">
-                          <Calendar className="h-4 w-4 inline mr-1" />
-                          Agendamentos
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {tenants.map((tenant) => (
-                        <tr
-                          key={tenant.id}
-                          className="hover:bg-gray-50 transition-colors"
-                          onClick={() =>
-                            router.push(`/superadmin/tenants/${tenant.id}`)
-                          }
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-                                <Building2 className="h-5 w-5 text-gray-600" />
-                              </div>
-                              <div>
-                                <span className="font-medium text-(--color-secondary)">
-                                  {tenant.name}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-gray-600">
-                            {tenant.domain}
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <Badge
-                              variant={tenant.active ? "success" : "error"}
-                            >
-                              {tenant.active ? "Ativo" : "Inativo"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {tenant._count.locations}
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {tenant._count.employees}
-                          </td>
-                          <td className="px-6 py-4 text-center text-gray-600">
-                            {tenant._count.appointments}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+          {(() => {
+            const tenantColumns: DataTableColumn<TenantListItem>[] = [
+              {
+                header: "Empresa",
+                accessor: "name",
+                sortable: true,
+                render: (_, row) => (
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+                      <Building2 className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <span className="font-medium text-(--color-secondary)">
+                      {row.name}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                header: "Domínio",
+                accessor: "domain",
+                sortable: true,
+                hideBelow: "md",
+              },
+              {
+                header: "Status",
+                accessor: "active",
+                className: "text-center",
+                render: (_, row) => (
+                  <Badge variant={row.active ? "success" : "error"}>
+                    {row.active ? "Ativo" : "Inativo"}
+                  </Badge>
+                ),
+              },
+              {
+                header: "Locais",
+                accessor: "id",
+                className: "text-center",
+                hideBelow: "sm",
+                render: (_, row) => (
+                  <span className="text-gray-600">{row._count.locations}</span>
+                ),
+              },
+              {
+                header: "Funcionários",
+                accessor: "id",
+                className: "text-center",
+                hideBelow: "md",
+                render: (_, row) => (
+                  <span className="text-gray-600">{row._count.employees}</span>
+                ),
+              },
+              {
+                header: "Agendamentos",
+                accessor: "id",
+                className: "text-center",
+                hideBelow: "lg",
+                render: (_, row) => (
+                  <span className="text-gray-600">
+                    {row._count.appointments}
+                  </span>
+                ),
+              },
+            ];
 
-              {/* Pagination */}
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                totalItems={total}
-                itemsPerPage={limit}
+            return (
+              <DataTable<TenantListItem>
+                columns={tenantColumns}
+                data={tenants}
+                loading={loading}
+                rowKey="id"
+                emptyMessage="Nenhuma empresa encontrada"
+                emptyIcon={<Building2 />}
+                emptyAction={
+                  !search
+                    ? {
+                        label: "Nova Empresa",
+                        onClick: () => router.push("/superadmin/tenants/new"),
+                      }
+                    : undefined
+                }
+                onRowClick={(row) =>
+                  router.push(`/superadmin/tenants/${row.id}`)
+                }
+                pagination={
+                  totalPages > 1
+                    ? {
+                        currentPage: page,
+                        totalPages,
+                        totalItems: total,
+                        itemsPerPage: limit,
+                        onPageChange: setPage,
+                      }
+                    : undefined
+                }
               />
-            </>
-          )}
+            );
+          })()}
         </div>
 
         {/* Toggle Status Modal */}

@@ -31,7 +31,7 @@ export const createProgramSchema = z
       .string()
       .min(2, "O nome deve ter pelo menos 2 caracteres")
       .max(200, "O nome deve ter no máximo 200 caracteres"),
-    tenantId: z.uuid("ID do tenant inválido"),
+    tenantId: z.uuid("ID do tenant inválido").optional(),
     sessionDurationMinutes: z
       .number()
       .int("A duração deve ser um número inteiro")
@@ -49,6 +49,7 @@ export const createProgramSchema = z
       .min(1, "A capacidade mínima é 1")
       .max(100, "A capacidade máxima é 100"),
     active: z.boolean().optional().default(true),
+    tenantIds: z.array(z.uuid("ID do tenant inválido")).optional(),
   })
   .refine((data) => timeToMinutes(data.dayEnd) > timeToMinutes(data.dayStart), {
     message: "O horário de término deve ser posterior ao horário de início",

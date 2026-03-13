@@ -24,7 +24,7 @@ type FormState = "idle" | "loading" | "error" | "success";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"; // Middleware redireciona /dashboard para o dashboard correto de cada role
   const signupSuccess = searchParams.get("signup") === "success";
 
   const [email, setEmail] = useState("");

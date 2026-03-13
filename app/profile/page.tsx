@@ -22,10 +22,7 @@ import {
   Save,
   Eye,
   EyeOff,
-  CalendarCheck,
   CheckCircle,
-  XCircle,
-  TrendingUp,
 } from "lucide-react";
 
 // ============================================================================
@@ -33,15 +30,19 @@ import {
 // ============================================================================
 
 interface EmployeeProfile {
-  id: string;
-  name: string;
-  email: string;
-  tenant: { name: string };
-  stats: {
-    totalAppointments: number;
-    completedAppointments: number;
-    cancelledAppointments: number;
-    attendanceRate: number;
+  user: {
+    id: string;
+    email: string;
+    displayName: string;
+    active: boolean;
+    createdAt: string;
+    lastLoginAt: string | null;
+  };
+  employee: {
+    id: string;
+    name: string;
+    email: string;
+    tenantName: string;
   };
 }
 
@@ -82,7 +83,7 @@ export default function EmployeeProfilePage() {
 
         if (json.success) {
           setProfile(json.data);
-          setName(json.data.name);
+          setName(json.data.employee.name);
         } else {
           setError(json.error || "Erro ao carregar perfil");
         }
@@ -121,7 +122,15 @@ export default function EmployeeProfilePage() {
       const json = await res.json();
 
       if (json.success) {
-        setProfile((prev) => (prev ? { ...prev, name: name.trim() } : prev));
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                employee: { ...prev.employee, name: name.trim() },
+                user: { ...prev.user, displayName: name.trim() },
+              }
+            : prev,
+        );
         setSuccess("Perfil atualizado com sucesso!");
         setTimeout(() => setSuccess(null), 3000);
       } else {
@@ -216,48 +225,6 @@ export default function EmployeeProfilePage() {
           </div>
         )}
 
-        {/* Stats Cards */}
-        {profile?.stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <CalendarCheck className="h-6 w-6 text-blue-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-(--color-secondary)">
-                  {profile.stats.totalAppointments}
-                </p>
-                <p className="text-xs text-gray-500">Total</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <CheckCircle className="h-6 w-6 text-green-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-(--color-secondary)">
-                  {profile.stats.completedAppointments}
-                </p>
-                <p className="text-xs text-gray-500">Realizados</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <XCircle className="h-6 w-6 text-red-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-(--color-secondary)">
-                  {profile.stats.cancelledAppointments}
-                </p>
-                <p className="text-xs text-gray-500">Cancelados</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <TrendingUp className="h-6 w-6 text-purple-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-(--color-secondary)">
-                  {profile.stats.attendanceRate}%
-                </p>
-                <p className="text-xs text-gray-500">Frequência</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         {/* Profile Form */}
         <Card variant="elevated">
           <CardHeader>
@@ -284,7 +251,7 @@ export default function EmployeeProfilePage() {
                   <Mail className="h-4 w-4" />
                   Email
                 </label>
-                <Input value={profile?.email || ""} disabled />
+                <Input value={profile?.user?.email || ""} disabled />
                 <p className="text-xs text-gray-400 mt-1">
                   O email não pode ser alterado
                 </p>
@@ -296,7 +263,7 @@ export default function EmployeeProfilePage() {
                   <Building2 className="h-4 w-4" />
                   Empresa
                 </label>
-                <Input value={profile?.tenant?.name || ""} disabled />
+                <Input value={profile?.employee?.tenantName || ""} disabled />
               </div>
 
               <div className="flex justify-end pt-2">

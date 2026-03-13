@@ -170,11 +170,33 @@ export default function TherapistAvailabilityPage() {
   }
 
   // Generate week days
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
+  const allWeekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart + "T00:00:00");
     d.setDate(d.getDate() + i);
     return d.toISOString().split("T")[0];
   });
+
+  // Check if weekend days have slots
+  const saturdayDate = allWeekDays[5]; // Saturday (index 5, Mon-based week)
+  const sundayDate = allWeekDays[6]; // Sunday (index 6)
+  const hasWeekendSlots =
+    (groupedByDate[saturdayDate]?.length ?? 0) > 0 ||
+    (groupedByDate[sundayDate]?.length ?? 0) > 0;
+
+  // State for screen width tracking
+  const [isWideScreen, setIsWideScreen] = useState(false);
+
+  useEffect(() => {
+    const checkWidth = () => setIsWideScreen(window.innerWidth >= 1700);
+    checkWidth();
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
+
+  // Show only weekdays (Mon-Fri) on wide screens without weekend slots
+  const weekDays =
+    isWideScreen && !hasWeekendSlots ? allWeekDays.slice(0, 5) : allWeekDays;
+  const gridCols = weekDays.length === 5 ? "lg:grid-cols-5" : "lg:grid-cols-7";
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + "T00:00:00");
@@ -311,7 +333,7 @@ export default function TherapistAvailabilityPage() {
                 </Button>
                 <button
                   onClick={goToCurrentWeek}
-                  className="text-sm font-medium text-(--color-secondary) hover:text-(--color-accent) transition-colors min-w-[180px] text-center"
+                  className="text-sm font-medium text-(--color-secondary) hover:text-(--color-accent) transition-colors min-w-45 text-center"
                 >
                   {formatWeekRange()}
                 </button>
@@ -338,7 +360,9 @@ export default function TherapistAvailabilityPage() {
               description="Nenhum slot de disponibilidade encontrado para o período selecionado."
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 ${gridCols} gap-4`}
+            >
               {weekDays.map((dateStr) => {
                 const daySlots = groupedByDate[dateStr] || [];
                 const isToday = dateStr === today;
@@ -346,11 +370,11 @@ export default function TherapistAvailabilityPage() {
                 return (
                   <Card
                     key={dateStr}
-                    className={`p-3 ${isToday ? "ring-2 ring-(--color-accent)" : ""}`}
+                    className={`p-3 min-w-0 ${isToday ? "ring-2 ring-(--color-accent)" : ""}`}
                   >
                     <div className="text-center mb-3">
                       <p
-                        className={`text-xs font-medium uppercase ${
+                        className={`text-xs lg:text-sm font-medium uppercase ${
                           isToday ? "text-(--color-accent)" : "text-gray-500"
                         }`}
                       >
@@ -388,7 +412,7 @@ export default function TherapistAvailabilityPage() {
                                   toggleSlotSelection(slot.id)
                                 }
                                 disabled={isPast || hasAppointment}
-                                className={`w-full text-left p-2 rounded-lg text-xs transition-colors border ${
+                                className={`w-full text-left p-2 lg:p-2.5 rounded-lg text-xs lg:text-sm transition-colors border ${
                                   isSelected
                                     ? "border-(--color-accent) bg-red-50"
                                     : hasAppointment
@@ -398,8 +422,8 @@ export default function TherapistAvailabilityPage() {
                                         : "border-gray-200 hover:bg-gray-50"
                                 }`}
                               >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="font-medium">
+                                <div className="flex items-center justify-between mb-1 gap-1">
+                                  <span className="font-medium whitespace-nowrap">
                                     {slot.startTime} - {slot.endTime}
                                   </span>
                                   {hasAppointment ? (
@@ -418,10 +442,10 @@ export default function TherapistAvailabilityPage() {
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-gray-500 truncate">
+                                <p className="text-gray-500 truncate lg:whitespace-normal">
                                   {slot.program.name}
                                 </p>
-                                <p className="text-gray-400 truncate flex items-center gap-1">
+                                <p className="text-gray-400 truncate lg:whitespace-normal flex items-center gap-1">
                                   <MapPin size={10} />
                                   {slot.location.name}
                                 </p>

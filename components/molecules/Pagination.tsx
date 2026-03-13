@@ -96,7 +96,12 @@ export const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className={cn("flex items-center justify-between gap-4", className)}>
+    <div
+      className={cn(
+        "flex flex-col items-center gap-3 sm:flex-row sm:justify-between sm:gap-4",
+        className,
+      )}
+    >
       {/* Info */}
       {showInfo && totalItems && (
         <div className="text-sm text-gray-600">{getInfoText()}</div>

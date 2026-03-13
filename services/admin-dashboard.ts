@@ -21,13 +21,40 @@ export class AdminDashboardError extends Error {
 }
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Helper: gera mapa de datas para período (YYYY-MM-DD)
+ */
+function buildDailyDateMap(days: number): Map<string, number> {
+  const map = new Map<string, number>();
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    map.set(key, 0);
+  }
+  return map;
+}
+
+function dateToKey(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
+// ============================================================================
 // TENANT ADMIN DASHBOARD
 // ============================================================================
 
 /**
  * Retorna dados do dashboard para TENANT_ADMIN
+ * @param days Período em dias para os gráficos (7, 15 ou 30)
  */
-export async function getTenantAdminDashboard(tenantId: string) {
+export async function getTenantAdminDashboard(
+  tenantId: string,
+  days: number = 30,
+) {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
     select: { id: true, name: true, active: true },
@@ -38,256 +65,152 @@ export async function getTenantAdminDashboard(tenantId: string) {
   }
 
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-  );
+  const periodStart = new Date(now);
+  periodStart.setDate(periodStart.getDate() - days + 1);
+  periodStart.setHours(0, 0, 0, 0);
 
-  // KPIs principais
-  const [
-    totalEmployees,
-    activeEmployees,
-    appointmentsThisMonth,
-    completedThisMonth,
-    cancelledThisMonth,
-    noShowsThisMonth,
-    pendingThisMonth,
-    totalAppointments,
-    totalLocations,
-    totalPrograms,
-    totalTherapists,
-  ] = await Promise.all([
+  // Buscar userIds dos employees do tenant para contar acessos
+  const tenantEmployeeUserIds = await prisma.employee.findMany({
+    where: { ...withTenantScope(tenantId), userId: { not: null } },
+    select: { userId: true },
+  });
+  const userIds = tenantEmployeeUserIds
+    .map((e) => e.userId)
+    .filter((id): id is string => id !== null);
+
+  // Buscar userIds dos tenant_admins do tenant
+  const tenantAdminRoles = await prisma.userRole.findMany({
+    where: {
+      tenantId,
+      role: { roleName: "TENANT_ADMIN" },
+    },
+    select: { userId: true },
+  });
+  const adminUserIds = tenantAdminRoles.map((r) => r.userId);
+  const allTenantUserIds = [...new Set([...userIds, ...adminUserIds])];
+
+  // Big Numbers
+  const [totalEmployees, totalAccesses, totalAppointments] = await Promise.all([
     prisma.employee.count({ where: { ...withTenantScope(tenantId) } }),
-    prisma.employee.count({
-      where: { ...withTenantScope(tenantId), active: true },
-    }),
-    prisma.appointment.count({
-      where: {
-        ...withTenantScope(tenantId),
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-      },
-    }),
-    prisma.appointment.count({
-      where: {
-        ...withTenantScope(tenantId),
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-        status: "COMPLETED",
-      },
-    }),
-    prisma.appointment.count({
-      where: {
-        ...withTenantScope(tenantId),
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-        status: "CANCELLED",
-      },
-    }),
-    prisma.appointment.count({
-      where: {
-        ...withTenantScope(tenantId),
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-        status: "NO_SHOW",
-      },
-    }),
-    prisma.appointment.count({
-      where: {
-        ...withTenantScope(tenantId),
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-        status: { in: ["PENDING", "CONFIRMED"] },
-      },
-    }),
+    allTenantUserIds.length > 0
+      ? prisma.authLog.count({
+          where: { outcome: "SUCCESS", userId: { in: allTenantUserIds } },
+        })
+      : Promise.resolve(0),
     prisma.appointment.count({ where: { ...withTenantScope(tenantId) } }),
-    prisma.location.count({ where: { ...withTenantScope(tenantId) } }),
-    prisma.program.count({
-      where: { ...withTenantScope(tenantId), active: true },
-    }),
-    prisma.therapistAssignment.count({
-      where: { ...withTenantScope(tenantId), active: true },
-    }),
   ]);
 
-  const noShowRate =
-    completedThisMonth + noShowsThisMonth > 0
-      ? Math.round(
-          (noShowsThisMonth / (completedThisMonth + noShowsThisMonth)) * 100,
-        )
+  const conversionRate =
+    totalAccesses > 0
+      ? Math.round((totalAppointments / totalAccesses) * 100 * 10) / 10
       : 0;
 
-  const utilizationRate =
-    appointmentsThisMonth > 0
-      ? Math.round((completedThisMonth / appointmentsThisMonth) * 100)
-      : 0;
-
-  // Agendamentos por programa (este mês)
-  const appointmentsByProgram = await prisma.appointment.groupBy({
-    by: ["programId"],
+  // ============================================================
+  // Chart 1: Agendamentos por Dia (empilhado por status)
+  // ============================================================
+  const appointmentsInPeriod = await prisma.appointment.findMany({
     where: {
       ...withTenantScope(tenantId),
-      startAt: { gte: startOfMonth, lte: endOfMonth },
-    },
-    _count: { id: true },
-  });
-
-  const programs = await prisma.program.findMany({
-    where: { ...withTenantScope(tenantId) },
-    select: { id: true, name: true },
-  });
-
-  const programMap = new Map(programs.map((p) => [p.id, p.name]));
-
-  const byProgram = appointmentsByProgram.map((item) => ({
-    programId: item.programId,
-    programName: programMap.get(item.programId) || "Desconhecido",
-    count: item._count.id,
-  }));
-
-  // Agendamentos por localização (este mês)
-  const appointmentsByLocation = await prisma.appointment.groupBy({
-    by: ["locationId"],
-    where: {
-      ...withTenantScope(tenantId),
-      startAt: { gte: startOfMonth, lte: endOfMonth },
-    },
-    _count: { id: true },
-  });
-
-  const locations = await prisma.location.findMany({
-    where: { ...withTenantScope(tenantId) },
-    select: { id: true, name: true },
-  });
-
-  const locationMap = new Map(locations.map((l) => [l.id, l.name]));
-
-  const byLocation = appointmentsByLocation.map((item) => ({
-    locationId: item.locationId,
-    locationName: locationMap.get(item.locationId) || "Desconhecido",
-    count: item._count.id,
-  }));
-
-  // Timeline dos últimos 6 meses
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-  sixMonthsAgo.setDate(1);
-  sixMonthsAgo.setHours(0, 0, 0, 0);
-
-  const monthlyAppointments = await prisma.appointment.findMany({
-    where: {
-      ...withTenantScope(tenantId),
-      startAt: { gte: sixMonthsAgo },
-      status: {
-        in: ["COMPLETED", "NO_SHOW", "CANCELLED", "PENDING", "CONFIRMED"],
-      },
+      startAt: { gte: periodStart },
     },
     select: { startAt: true, status: true },
     orderBy: { startAt: "asc" },
   });
 
-  const monthlyMap = new Map<
+  const dailyDates = Array.from(buildDailyDateMap(days).keys());
+  const appointmentsDailyAgg = new Map<
     string,
-    { total: number; completed: number; cancelled: number; noShows: number }
+    { completed: number; cancelled: number; scheduled: number }
   >();
-
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    monthlyMap.set(key, { total: 0, completed: 0, cancelled: 0, noShows: 0 });
+  for (const dateKey of dailyDates) {
+    appointmentsDailyAgg.set(dateKey, {
+      completed: 0,
+      cancelled: 0,
+      scheduled: 0,
+    });
   }
-
-  for (const appt of monthlyAppointments) {
-    const key = `${appt.startAt.getFullYear()}-${String(appt.startAt.getMonth() + 1).padStart(2, "0")}`;
-    const entry = monthlyMap.get(key);
+  for (const appt of appointmentsInPeriod) {
+    const dateKey = dateToKey(appt.startAt);
+    const entry = appointmentsDailyAgg.get(dateKey);
     if (entry) {
-      entry.total++;
       if (appt.status === "COMPLETED") entry.completed++;
-      if (appt.status === "CANCELLED") entry.cancelled++;
-      if (appt.status === "NO_SHOW") entry.noShows++;
+      else if (appt.status === "CANCELLED") entry.cancelled++;
+      else entry.scheduled++;
     }
   }
 
-  const timeline = Array.from(monthlyMap.entries()).map(([month, data]) => ({
-    month,
-    ...data,
+  const appointmentsChart = dailyDates.map((date) => ({
+    date,
+    ...appointmentsDailyAgg.get(date)!,
   }));
 
-  // Top usuários (funcionários com mais agendamentos este mês)
-  const topUsersRaw = await prisma.appointment.groupBy({
-    by: ["employeeId"],
-    where: {
-      ...withTenantScope(tenantId),
-      startAt: { gte: startOfMonth, lte: endOfMonth },
-    },
-    _count: { id: true },
-    orderBy: { _count: { id: "desc" } },
-    take: 5,
-  });
+  // ============================================================
+  // Chart 2: Acessos Diários dos Funcionários do Tenant
+  // ============================================================
+  const accessLogs =
+    allTenantUserIds.length > 0
+      ? await prisma.authLog.findMany({
+          where: {
+            outcome: "SUCCESS",
+            userId: { in: allTenantUserIds },
+            createdAt: { gte: periodStart },
+          },
+          select: { createdAt: true },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
 
-  const topEmployeeIds = topUsersRaw.map((u) => u.employeeId);
-  const topEmployees = await prisma.employee.findMany({
-    where: { id: { in: topEmployeeIds } },
-    select: { id: true, name: true, email: true },
-  });
+  const dailyAccessMap = buildDailyDateMap(days);
+  for (const log of accessLogs) {
+    const key = dateToKey(log.createdAt);
+    if (dailyAccessMap.has(key)) {
+      dailyAccessMap.set(key, (dailyAccessMap.get(key) || 0) + 1);
+    }
+  }
 
-  const employeeMap = new Map(topEmployees.map((e) => [e.id, e]));
+  const dailyAccessesChart = Array.from(dailyAccessMap.entries()).map(
+    ([date, count]) => ({
+      date,
+      accesses: count,
+    }),
+  );
 
-  const topUsers = topUsersRaw.map((item) => ({
-    employee: employeeMap.get(item.employeeId) || {
-      id: item.employeeId,
-      name: "Desconhecido",
-      email: "",
-    },
-    count: item._count.id,
-  }));
+  // ============================================================
+  // Chart 3: Taxa de Conversão Diária (agendamentos / acessos por dia)
+  // ============================================================
+  const conversionChart = dailyDates.map((date) => {
+    const apptData = appointmentsDailyAgg.get(date);
+    const totalApptDay = apptData
+      ? apptData.completed + apptData.cancelled + apptData.scheduled
+      : 0;
+    const accessDay = dailyAccessMap.get(date) || 0;
+    const rate =
+      accessDay > 0
+        ? Math.round((totalApptDay / accessDay) * 100 * 10) / 10
+        : 0;
 
-  // Atividade recente (últimos 10 agendamentos)
-  const recentActivity = await prisma.appointment.findMany({
-    where: { ...withTenantScope(tenantId) },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    include: {
-      employee: { select: { id: true, name: true } },
-      therapist: { select: { id: true, name: true } },
-      program: { select: { id: true, name: true } },
-      location: { select: { id: true, name: true } },
-    },
+    return {
+      date,
+      rate,
+      appointments: totalApptDay,
+      accesses: accessDay,
+    };
   });
 
   return {
     tenant: { id: tenant.id, name: tenant.name },
-    kpis: {
+    bigNumbers: {
       totalEmployees,
-      activeEmployees,
-      appointmentsThisMonth,
-      completedThisMonth,
-      cancelledThisMonth,
-      noShowsThisMonth,
-      pendingThisMonth,
+      totalAccesses,
       totalAppointments,
-      totalLocations,
-      totalPrograms,
-      totalTherapists,
-      noShowRate,
-      utilizationRate,
+      conversionRate,
     },
-    byProgram,
-    byLocation,
-    timeline,
-    topUsers,
-    recentActivity: recentActivity.map((a) => ({
-      id: a.id,
-      code: a.code,
-      status: a.status,
-      startAt: a.startAt,
-      createdAt: a.createdAt,
-      employee: a.employee,
-      therapist: a.therapist,
-      program: a.program,
-      location: a.location,
-    })),
+    charts: {
+      appointmentsDaily: appointmentsChart,
+      dailyAccesses: dailyAccessesChart,
+      conversionDaily: conversionChart,
+    },
+    period: days,
   };
 }
 
@@ -297,226 +220,164 @@ export async function getTenantAdminDashboard(tenantId: string) {
 
 /**
  * Retorna dados do dashboard global para SUPER_ADMIN
+ * @param days Período em dias para os gráficos (7, 15 ou 30)
  */
-export async function getSuperAdminDashboard() {
+export async function getSuperAdminDashboard(days: number = 30) {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-  );
+  const periodStart = new Date(now);
+  periodStart.setDate(periodStart.getDate() - days + 1);
+  periodStart.setHours(0, 0, 0, 0);
 
-  // KPIs globais
-  const [
-    totalTenants,
-    activeTenants,
-    totalEmployees,
-    activeEmployees,
-    totalTherapists,
-    activeTherapists,
-    totalAppointments,
-    appointmentsThisMonth,
-    completedThisMonth,
-    cancelledThisMonth,
-    noShowsThisMonth,
-    totalLocations,
-    totalPrograms,
-  ] = await Promise.all([
-    prisma.tenant.count(),
-    prisma.tenant.count({ where: { active: true } }),
-    prisma.employee.count(),
-    prisma.employee.count({ where: { active: true } }),
-    prisma.therapist.count(),
-    prisma.therapist.count({ where: { active: true } }),
-    prisma.appointment.count(),
-    prisma.appointment.count({
-      where: { startAt: { gte: startOfMonth, lte: endOfMonth } },
-    }),
-    prisma.appointment.count({
-      where: {
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-        status: "COMPLETED",
-      },
-    }),
-    prisma.appointment.count({
-      where: {
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-        status: "CANCELLED",
-      },
-    }),
-    prisma.appointment.count({
-      where: {
-        startAt: { gte: startOfMonth, lte: endOfMonth },
-        status: "NO_SHOW",
-      },
-    }),
-    prisma.location.count(),
-    prisma.program.count({ where: { active: true } }),
-  ]);
+  // Big Numbers — KPIs globais
+  const [activeTenants, totalEmployees, totalAccesses, totalAppointments] =
+    await Promise.all([
+      prisma.tenant.count({ where: { active: true } }),
+      prisma.employee.count(),
+      prisma.authLog.count({ where: { outcome: "SUCCESS" } }),
+      prisma.appointment.count(),
+    ]);
 
-  const noShowRate =
-    completedThisMonth + noShowsThisMonth > 0
-      ? Math.round(
-          (noShowsThisMonth / (completedThisMonth + noShowsThisMonth)) * 100,
-        )
-      : 0;
-
-  // Agendamentos por tenant (este mês)
-  const appointmentsByTenant = await prisma.appointment.groupBy({
-    by: ["tenantId"],
-    where: { startAt: { gte: startOfMonth, lte: endOfMonth } },
-    _count: { id: true },
-    orderBy: { _count: { id: "desc" } },
-    take: 10,
-  });
-
-  const tenantIds = appointmentsByTenant.map((t) => t.tenantId);
-  const tenants = await prisma.tenant.findMany({
-    where: { id: { in: tenantIds } },
-    select: { id: true, name: true },
-  });
-
-  const tenantMap = new Map(tenants.map((t) => [t.id, t.name]));
-
-  const byTenant = appointmentsByTenant.map((item) => ({
-    tenantId: item.tenantId,
-    tenantName: tenantMap.get(item.tenantId) || "Desconhecido",
-    count: item._count.id,
-  }));
-
-  // Timeline de crescimento (últimos 6 meses)
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-  sixMonthsAgo.setDate(1);
-  sixMonthsAgo.setHours(0, 0, 0, 0);
-
-  const monthlyAppointments = await prisma.appointment.findMany({
-    where: { startAt: { gte: sixMonthsAgo } },
-    select: { startAt: true },
+  // ============================================================
+  // Chart 1: Agendamentos por Tenant por Dia (empilhado por status)
+  // ============================================================
+  const appointmentsInPeriod = await prisma.appointment.findMany({
+    where: { startAt: { gte: periodStart } },
+    select: { tenantId: true, startAt: true, status: true },
     orderBy: { startAt: "asc" },
   });
 
-  const monthlyMap = new Map<string, number>();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    monthlyMap.set(key, 0);
+  // Buscar nomes dos tenants
+  const allTenantIds = [
+    ...new Set(appointmentsInPeriod.map((a) => a.tenantId)),
+  ];
+  const tenantsData = await prisma.tenant.findMany({
+    where: { id: { in: allTenantIds } },
+    select: { id: true, name: true },
+  });
+  const tenantNameMap = new Map(tenantsData.map((t) => [t.id, t.name]));
+
+  // Montar dados diários por tenant
+  const dailyDates = Array.from(buildDailyDateMap(days).keys());
+  const appointmentsByTenantDaily: Array<{
+    date: string;
+    tenant: string;
+    completed: number;
+    cancelled: number;
+    scheduled: number;
+  }> = [];
+
+  // Agrupar por date+tenant
+  const dailyTenantMap = new Map<
+    string,
+    { completed: number; cancelled: number; scheduled: number }
+  >();
+  for (const appt of appointmentsInPeriod) {
+    const dateKey = dateToKey(appt.startAt);
+    const tenantName = tenantNameMap.get(appt.tenantId) || "Desconhecido";
+    const compositeKey = `${dateKey}|${tenantName}`;
+
+    if (!dailyTenantMap.has(compositeKey)) {
+      dailyTenantMap.set(compositeKey, {
+        completed: 0,
+        cancelled: 0,
+        scheduled: 0,
+      });
+    }
+    const entry = dailyTenantMap.get(compositeKey)!;
+    if (appt.status === "COMPLETED") entry.completed++;
+    else if (appt.status === "CANCELLED") entry.cancelled++;
+    else entry.scheduled++;
   }
 
-  for (const appt of monthlyAppointments) {
-    const key = `${appt.startAt.getFullYear()}-${String(appt.startAt.getMonth() + 1).padStart(2, "0")}`;
-    monthlyMap.set(key, (monthlyMap.get(key) || 0) + 1);
+  // Converter para formato flat para Recharts (uma linha por dia, colunas por status)
+  const appointmentsDailyAgg = new Map<
+    string,
+    { completed: number; cancelled: number; scheduled: number }
+  >();
+  for (const dateKey of dailyDates) {
+    appointmentsDailyAgg.set(dateKey, {
+      completed: 0,
+      cancelled: 0,
+      scheduled: 0,
+    });
+  }
+  for (const appt of appointmentsInPeriod) {
+    const dateKey = dateToKey(appt.startAt);
+    const entry = appointmentsDailyAgg.get(dateKey);
+    if (entry) {
+      if (appt.status === "COMPLETED") entry.completed++;
+      else if (appt.status === "CANCELLED") entry.cancelled++;
+      else entry.scheduled++;
+    }
   }
 
-  const timeline = Array.from(monthlyMap.entries()).map(([month, count]) => ({
-    month,
-    count,
+  const appointmentsChart = dailyDates.map((date) => ({
+    date,
+    ...appointmentsDailyAgg.get(date)!,
   }));
 
-  // Crescimento de usuários (employees por mês)
-  const monthlyUsers = await prisma.employee.findMany({
-    where: { createdAt: { gte: sixMonthsAgo } },
+  // ============================================================
+  // Chart 2: Acessos Diários da Plataforma
+  // ============================================================
+  const accessLogs = await prisma.authLog.findMany({
+    where: {
+      outcome: "SUCCESS",
+      createdAt: { gte: periodStart },
+    },
     select: { createdAt: true },
     orderBy: { createdAt: "asc" },
   });
 
-  const userGrowthMap = new Map<string, number>();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    userGrowthMap.set(key, 0);
+  const dailyAccessMap = buildDailyDateMap(days);
+  for (const log of accessLogs) {
+    const key = dateToKey(log.createdAt);
+    if (dailyAccessMap.has(key)) {
+      dailyAccessMap.set(key, (dailyAccessMap.get(key) || 0) + 1);
+    }
   }
 
-  for (const user of monthlyUsers) {
-    const key = `${user.createdAt.getFullYear()}-${String(user.createdAt.getMonth() + 1).padStart(2, "0")}`;
-    userGrowthMap.set(key, (userGrowthMap.get(key) || 0) + 1);
-  }
-
-  const userGrowth = Array.from(userGrowthMap.entries()).map(
-    ([month, count]) => ({ month, count }),
+  const dailyAccessesChart = Array.from(dailyAccessMap.entries()).map(
+    ([date, count]) => ({
+      date,
+      accesses: count,
+    }),
   );
 
-  // Tenants recentes
-  const recentTenants = await prisma.tenant.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    include: {
-      _count: {
-        select: { employees: true, appointments: true },
-      },
-    },
+  // ============================================================
+  // Chart 3: Employees Cadastrados por Tenant
+  // ============================================================
+  const employeesByTenantRaw = await prisma.employee.groupBy({
+    by: ["tenantId"],
+    _count: { id: true },
+    orderBy: { _count: { id: "desc" } },
+    take: 15,
   });
 
-  // Alertas do sistema
-  const alerts: Array<{ type: "warning" | "error" | "info"; message: string }> =
-    [];
-
-  // Tenants inativos
-  const inactiveTenants = await prisma.tenant.count({
-    where: { active: false },
+  const empTenantIds = employeesByTenantRaw.map((e) => e.tenantId);
+  const empTenants = await prisma.tenant.findMany({
+    where: { id: { in: empTenantIds } },
+    select: { id: true, name: true },
   });
-  if (inactiveTenants > 0) {
-    alerts.push({
-      type: "warning",
-      message: `${inactiveTenants} empresa(s) inativa(s) na plataforma`,
-    });
-  }
+  const empTenantMap = new Map(empTenants.map((t) => [t.id, t.name]));
 
-  // Terapeutas inativos
-  const inactiveTherapists = await prisma.therapist.count({
-    where: { active: false },
-  });
-  if (inactiveTherapists > 0) {
-    alerts.push({
-      type: "info",
-      message: `${inactiveTherapists} terapeuta(s) inativo(s)`,
-    });
-  }
-
-  // No-show rate alto
-  if (noShowRate > 15) {
-    alerts.push({
-      type: "error",
-      message: `Taxa de ausência acima de 15% este mês (${noShowRate}%)`,
-    });
-  }
+  const employeesByTenantChart = employeesByTenantRaw.map((item) => ({
+    tenant: empTenantMap.get(item.tenantId) || "Desconhecido",
+    employees: item._count.id,
+  }));
 
   return {
-    kpis: {
-      totalTenants,
+    bigNumbers: {
       activeTenants,
       totalEmployees,
-      activeEmployees,
-      totalTherapists,
-      activeTherapists,
+      totalAccesses,
       totalAppointments,
-      appointmentsThisMonth,
-      completedThisMonth,
-      cancelledThisMonth,
-      noShowsThisMonth,
-      totalLocations,
-      totalPrograms,
-      noShowRate,
     },
-    byTenant,
-    timeline,
-    userGrowth,
-    recentTenants: recentTenants.map((t) => ({
-      id: t.id,
-      name: t.name,
-      domain: t.domain,
-      active: t.active,
-      createdAt: t.createdAt,
-      employeeCount: t._count.employees,
-      appointmentCount: t._count.appointments,
-    })),
-    alerts,
+    charts: {
+      appointmentsDaily: appointmentsChart,
+      dailyAccesses: dailyAccessesChart,
+      employeesByTenant: employeesByTenantChart,
+    },
+    period: days,
   };
 }
 

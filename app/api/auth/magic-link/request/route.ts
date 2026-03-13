@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { magicLinkRequestSchema } from "@/lib/validations/auth";
-import { createMagicToken, logAuthAttempt, sendEmail } from "@/services/auth";
+import {
+  checkExistingAccount,
+  createMagicToken,
+  logAuthAttempt,
+  sendEmail,
+} from "@/services/auth";
 import { getTenantFromDomain } from "@/lib/utils/tenant";
 import type { ApiResponse } from "@/types";
 
@@ -52,6 +57,25 @@ export async function POST(
             "O domínio do seu email não está cadastrado. Verifique o email informado ou entre em contato com o RH da sua empresa.",
         },
         { status: 400 },
+      );
+    }
+
+    // Verificar se já existe conta com esse email
+    const existingAccount = await checkExistingAccount(normalizedEmail);
+    if (existingAccount.exists) {
+      await logAuthAttempt({
+        method: "MAGIC_LINK",
+        outcome: "FAILURE",
+        reason: `Account already exists for: ${normalizedEmail}`,
+        ip,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Já existe uma conta cadastrada com esse email. Faça login.",
+          code: "ACCOUNT_EXISTS",
+        },
+        { status: 409 },
       );
     }
 

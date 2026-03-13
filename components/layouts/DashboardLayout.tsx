@@ -15,14 +15,12 @@ export interface DashboardLayoutProps {
     avatar?: string;
     role: RoleType;
   };
-  notificationCount?: number;
   className?: string;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
   user,
-  notificationCount = 0,
   className,
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -48,24 +46,27 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-(--color-primary)">
-      {/* Navbar */}
       <Navbar
         onMenuClick={() => setSidebarOpen(true)}
-        user={currentUser}
-        notificationCount={notificationCount}
+        className="fixed top-0 left-0 right-0 z-40 w-full"
       />
 
-      <div className="flex">
-        {/* Sidebar */}
+      <div className="flex pt-16">
+        {/* Sidebar — fixed below navbar */}
         <Sidebar
           role={currentUser.role}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          className="top-16 h-[calc(100vh-4rem)]"
         />
 
-        {/* Main Content */}
-        <main className={cn("flex-1 lg:ml-0", className)}>
-          <div className="container mx-auto p-4 md:p-6 lg:p-8">{children}</div>
+        {/* Main Content — scrollable */}
+        <main
+          className={cn("flex-1 min-h-[calc(100vh-4rem)] lg:ml-64", className)}
+        >
+          <div className="container mx-auto p-4 md:p-6 lg:p-8 shrink-3">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -18,17 +18,20 @@ import Link from "next/link";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
 
 type FormState = "idle" | "loading" | "sent" | "error";
+type ErrorCode = "ACCOUNT_INACTIVE" | null;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [errorCode, setErrorCode] = useState<ErrorCode>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
     setErrorMessage("");
+    setErrorCode(null);
 
     // Validação com Zod
     const validation = forgotPasswordSchema.safeParse({ email });
@@ -58,6 +61,9 @@ export default function ForgotPasswordPage() {
       if (!response.ok) {
         setFormState("error");
         setErrorMessage(data.error || "Erro ao processar solicitação.");
+        if (data.code === "ACCOUNT_INACTIVE") {
+          setErrorCode("ACCOUNT_INACTIVE");
+        }
         return;
       }
 
@@ -127,8 +133,19 @@ export default function ForgotPasswordPage() {
         </CardHeader>
         <CardContent>
           {formState === "error" && errorMessage && (
-            <Alert variant="error" className="mb-4">
-              {errorMessage}
+            <Alert
+              variant={errorCode === "ACCOUNT_INACTIVE" ? "warning" : "error"}
+              className="mb-4"
+            >
+              <div>
+                {errorMessage}
+                {errorCode === "ACCOUNT_INACTIVE" && (
+                  <p className="mt-1 text-sm">
+                    Por favor, entre em contato com o departamento de Recursos
+                    Humanos da sua empresa para reativar sua conta.
+                  </p>
+                )}
+              </div>
             </Alert>
           )}
 

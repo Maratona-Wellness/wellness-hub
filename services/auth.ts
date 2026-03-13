@@ -176,6 +176,26 @@ export async function verifyToken(
 }
 
 /**
+ * Verifica se já existe uma conta cadastrada para o email informado
+ * Retorna informações sobre o status da conta
+ */
+export async function checkExistingAccount(email: string): Promise<{
+  exists: boolean;
+  active?: boolean;
+}> {
+  const user = await prisma.userAccount.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { id: true, active: true },
+  });
+
+  if (!user) {
+    return { exists: false };
+  }
+
+  return { exists: true, active: user.active };
+}
+
+/**
  * Cria um magic token para signup de funcionário
  */
 export async function createMagicToken(

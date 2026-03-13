@@ -11,7 +11,13 @@ export const GET = requireRole(
   ["SUPER_ADMIN"],
   async (request: NextRequest, { user }) => {
     try {
-      const data = await getSuperAdminDashboard();
+      const { searchParams } = new URL(request.url);
+      const daysParam = searchParams.get("days");
+      const days = daysParam
+        ? Math.min(Math.max(parseInt(daysParam, 10) || 30, 1), 90)
+        : 30;
+
+      const data = await getSuperAdminDashboard(days);
 
       return NextResponse.json({ success: true, data });
     } catch (error) {

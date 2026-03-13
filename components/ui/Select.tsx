@@ -32,7 +32,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ref,
   ) => {
     const baseStyles =
-      "flex h-10 w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[var(--color-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-colors";
+      "flex min-h-10 w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-[var(--color-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-colors truncate";
 
     const errorStyles = error
       ? "border-red-500 focus-visible:ring-red-500"

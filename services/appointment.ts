@@ -337,7 +337,7 @@ export async function createAppointment(
     );
   }
 
-  // Verificar se o funcionário já tem agendamento no mesmo dia/horário
+  // Verificar se já tem agendamento no mesmo dia/horário
   const existingAppointment = await prisma.appointment.findFirst({
     where: {
       employeeId: employee.id,
@@ -357,23 +357,37 @@ export async function createAppointment(
     );
   }
 
-  // Verificar se já tem agendamento no mesmo dia (regra de 1 por dia)
-  const sameDayAppointment = await prisma.appointment.findFirst({
+  // Verificar limite mensal (máximo 2 agendamentos por mês)
+  const monthStart = new Date(
+    appointmentDate.getFullYear(),
+    appointmentDate.getMonth(),
+    1,
+  );
+  const monthEnd = new Date(
+    appointmentDate.getFullYear(),
+    appointmentDate.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+  );
+
+  const monthlyCount = await prisma.appointment.count({
     where: {
       employeeId: employee.id,
       ...withTenantScope(tenantId),
       startAt: {
-        gte: new Date(`${data.date}T00:00:00`),
-        lt: new Date(`${data.date}T23:59:59`),
+        gte: monthStart,
+        lte: monthEnd,
       },
       status: { in: ["PENDING", "CONFIRMED"] },
     },
   });
 
-  if (sameDayAppointment) {
+  if (monthlyCount >= 2) {
     throw new AppointmentServiceError(
       "ALREADY_BOOKED",
-      "Você já possui um agendamento para este dia. Limite de 1 sessão por dia.",
+      "Você já atingiu o limite de 2 agendamentos para este mês.",
     );
   }
 

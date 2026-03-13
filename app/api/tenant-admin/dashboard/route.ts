@@ -21,7 +21,13 @@ export const GET = requireRole(
         );
       }
 
-      const data = await getTenantAdminDashboard(user.tenantId);
+      const { searchParams } = new URL(request.url);
+      const daysParam = searchParams.get("days");
+      const days = daysParam
+        ? Math.min(Math.max(parseInt(daysParam, 10) || 30, 1), 90)
+        : 30;
+
+      const data = await getTenantAdminDashboard(user.tenantId, days);
 
       return NextResponse.json({ success: true, data });
     } catch (error) {

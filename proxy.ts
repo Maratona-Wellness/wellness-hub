@@ -80,6 +80,20 @@ export async function proxy(request: NextRequest) {
   // Verificar autorização por role
   const userRole = token.role as string;
 
+  // Redirecionar cada role de /dashboard para sua home específica
+  if (pathname === "/dashboard") {
+    const roleRedirects: Record<string, string> = {
+      EMPLOYEE: "/appointments",
+      THERAPIST: "/therapist/calendar",
+      SUPER_ADMIN: "/superadmin/dashboard",
+      TENANT_ADMIN: "/admin/dashboard",
+    };
+    const target = roleRedirects[userRole];
+    if (target) {
+      return NextResponse.redirect(new URL(target, request.url));
+    }
+  }
+
   for (const [routePrefix, allowedRoles] of Object.entries(ROUTE_ROLE_MAP)) {
     if (pathname.startsWith(routePrefix)) {
       if (!allowedRoles.includes(userRole)) {

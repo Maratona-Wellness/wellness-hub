@@ -55,6 +55,7 @@ model Tenant {
   // Relations
   locations            Location[]
   programs             Program[]
+  tenantPrograms       TenantProgram[]
   employees            Employee[]
   therapistAssignments TherapistAssignment[]
   availabilitySlots    AvailabilitySlot[]
@@ -87,7 +88,7 @@ model Location {
 
 model Program {
   id                        String   @id @default(uuid()) @db.Uuid
-  tenantId                  String   @map("tenant_id") @db.Uuid
+  tenantId                  String?  @map("tenant_id") @db.Uuid
   name                      String
   sessionDurationMinutes    Int      @map("session_duration_minutes")
   dayStart                  String   @map("day_start") // Stored as HH:MM format
@@ -98,13 +99,33 @@ model Program {
   updatedAt                 DateTime @updatedAt @map("updated_at")
 
   // Relations
-  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant            Tenant?            @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  tenantPrograms    TenantProgram[]
   availabilitySlots AvailabilitySlot[]
   appointments      Appointment[]
 
   @@index([tenantId])
   @@index([active])
   @@map("programs")
+}
+
+model TenantProgram {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  programId String   @map("program_id") @db.Uuid
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, programId])
+  @@index([tenantId])
+  @@index([programId])
+  @@index([active])
+  @@map("tenant_programs")
 }
 
 // ============================================================================

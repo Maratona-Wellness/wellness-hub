@@ -204,7 +204,6 @@ export default function NewTenantPage() {
         body: JSON.stringify({
           name: formData.name.trim(),
           domain: formData.domain.toLowerCase().trim(),
-          logoUrl: formData.logoUrl.trim() || undefined,
           locations: formData.locations.map((loc) => ({
             name: loc.name.trim(),
             address: loc.address.trim(),
@@ -479,14 +478,6 @@ export default function NewTenantPage() {
                       <dt className="text-gray-500">Domínio</dt>
                       <dd className="font-medium">{formData.domain}</dd>
                     </div>
-                    {formData.logoUrl && (
-                      <div className="col-span-2">
-                        <dt className="text-gray-500">Logo URL</dt>
-                        <dd className="font-medium truncate">
-                          {formData.logoUrl}
-                        </dd>
-                      </div>
-                    )}
                   </dl>
                 </CardContent>
               </Card>

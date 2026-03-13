@@ -1,25 +1,22 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { Users, LogIn, CalendarCheck, TrendingUp } from "lucide-react";
 import {
-  Users,
-  Calendar,
-  TrendingUp,
-  XCircle,
-  CheckCircle,
-  Clock,
-  MapPin,
-  Package,
-  UserCog,
-  BarChart3,
-  Settings,
-  ArrowRight,
-} from "lucide-react";
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { DashboardLayout } from "@/components/layouts";
-import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
-import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import {
   Card,
@@ -34,99 +31,50 @@ import { AuthGuard } from "@/components/AuthGuard";
 // TYPES
 // ============================================================================
 
-interface DashboardData {
+interface TenantAdminDashboardData {
   tenant: { id: string; name: string };
-  kpis: {
+  bigNumbers: {
     totalEmployees: number;
-    activeEmployees: number;
-    appointmentsThisMonth: number;
-    completedThisMonth: number;
-    cancelledThisMonth: number;
-    noShowsThisMonth: number;
-    pendingThisMonth: number;
+    totalAccesses: number;
     totalAppointments: number;
-    totalLocations: number;
-    totalPrograms: number;
-    totalTherapists: number;
-    noShowRate: number;
-    utilizationRate: number;
+    conversionRate: number;
   };
-  byProgram: Array<{ programId: string; programName: string; count: number }>;
-  byLocation: Array<{
-    locationId: string;
-    locationName: string;
-    count: number;
-  }>;
-  timeline: Array<{
-    month: string;
-    total: number;
-    completed: number;
-    cancelled: number;
-    noShows: number;
-  }>;
-  topUsers: Array<{
-    employee: { id: string; name: string; email: string };
-    count: number;
-  }>;
-  recentActivity: Array<{
-    id: string;
-    code: string;
-    status: string;
-    startAt: string;
-    createdAt: string;
-    employee: { id: string; name: string };
-    therapist: { id: string; name: string };
-    program: { id: string; name: string };
-    location: { id: string; name: string };
-  }>;
+  charts: {
+    appointmentsDaily: Array<{
+      date: string;
+      completed: number;
+      cancelled: number;
+      scheduled: number;
+    }>;
+    dailyAccesses: Array<{
+      date: string;
+      accesses: number;
+    }>;
+    conversionDaily: Array<{
+      date: string;
+      rate: number;
+      appointments: number;
+      accesses: number;
+    }>;
+  };
+  period: number;
 }
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-function formatMonthLabel(monthStr: string): string {
-  const [year, month] = monthStr.split("-");
-  const date = new Date(parseInt(year), parseInt(month) - 1);
-  return date.toLocaleDateString("pt-BR", { month: "short" });
+type PeriodOption = 7 | 15 | 30;
+
+function formatDateLabel(dateStr: string): string {
+  const [, month, day] = dateStr.split("-");
+  return `${day}/${month}`;
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-}
-
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    PENDING: "Pendente",
-    CONFIRMED: "Confirmado",
-    COMPLETED: "Concluído",
-    NO_SHOW: "Ausência",
-    CANCELLED: "Cancelado",
-  };
-  return labels[status] || status;
-}
-
-function getStatusVariant(
-  status: string,
-): "success" | "warning" | "error" | "info" {
-  const map: Record<string, "success" | "warning" | "error" | "info"> = {
-    COMPLETED: "success",
-    CONFIRMED: "info",
-    PENDING: "warning",
-    NO_SHOW: "error",
-    CANCELLED: "error",
-  };
-  return map[status] || "info";
+function formatNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toLocaleString("pt-BR");
 }
 
 // ============================================================================
@@ -134,14 +82,16 @@ function getStatusVariant(
 // ============================================================================
 
 export default function TenantAdminDashboardPage() {
-  const router = useRouter();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<TenantAdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<PeriodOption>(30);
 
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = useCallback(async (days: PeriodOption) => {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/tenant-admin/dashboard");
+      const res = await fetch(`/api/tenant-admin/dashboard?days=${days}`);
       const json = await res.json();
 
       if (!res.ok || !json.success) {
@@ -151,15 +101,15 @@ export default function TenantAdminDashboardPage() {
 
       setData(json.data);
     } catch {
-      setError("Erro de conexão");
+      setError("Erro de conexão com o servidor");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchDashboard();
-  }, [fetchDashboard]);
+    fetchDashboard(period);
+  }, [period, fetchDashboard]);
 
   if (loading) {
     return (
@@ -178,7 +128,7 @@ export default function TenantAdminDashboardPage() {
       <AuthGuard>
         <DashboardLayout>
           <EmptyState
-            icon={<XCircle />}
+            icon={<CalendarCheck />}
             title="Erro ao carregar dashboard"
             description={error || "Dados não disponíveis"}
             action={{
@@ -191,12 +141,54 @@ export default function TenantAdminDashboardPage() {
     );
   }
 
-  const { kpis, byProgram, byLocation, timeline, topUsers, recentActivity } =
-    data;
+  const { bigNumbers, charts } = data;
 
-  const maxTimelineTotal = Math.max(...timeline.map((t) => t.total), 1);
-  const maxProgramCount = Math.max(...byProgram.map((p) => p.count), 1);
-  const maxLocationCount = Math.max(...byLocation.map((l) => l.count), 1);
+  const bigNumberItems = [
+    {
+      label: "Total de Funcionários",
+      value: formatNumber(bigNumbers.totalEmployees),
+      icon: Users,
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
+    },
+    {
+      label: "Total de Acessos",
+      value: formatNumber(bigNumbers.totalAccesses),
+      icon: LogIn,
+      iconBg: "bg-purple-50",
+      iconColor: "text-purple-600",
+    },
+    {
+      label: "Total de Agendamentos",
+      value: formatNumber(bigNumbers.totalAppointments),
+      icon: CalendarCheck,
+      iconBg: "bg-green-50",
+      iconColor: "text-green-600",
+    },
+    {
+      label: "Taxa de Conversão",
+      value: `${bigNumbers.conversionRate}%`,
+      icon: TrendingUp,
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
+    },
+  ];
+
+  // Preparar dados dos gráficos com labels formatados
+  const appointmentsChartData = charts.appointmentsDaily.map((item) => ({
+    ...item,
+    label: formatDateLabel(item.date),
+  }));
+
+  const accessesChartData = charts.dailyAccesses.map((item) => ({
+    ...item,
+    label: formatDateLabel(item.date),
+  }));
+
+  const conversionChartData = charts.conversionDaily.map((item) => ({
+    ...item,
+    label: formatDateLabel(item.date),
+  }));
 
   return (
     <AuthGuard>
@@ -210,374 +202,185 @@ export default function TenantAdminDashboardPage() {
                 Visão geral da {data.tenant.name}
               </Text>
             </div>
+
+            {/* Filtro de período */}
             <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push("/admin/employees")}
-              >
-                <Users className="h-4 w-4 mr-1" />
-                Funcionários
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push("/admin/reports")}
-              >
-                <BarChart3 className="h-4 w-4 mr-1" />
-                Relatórios
-              </Button>
+              {([7, 15, 30] as PeriodOption[]).map((days) => (
+                <Button
+                  key={days}
+                  variant={period === days ? "primary" : "secondary"}
+                  size="sm"
+                  onClick={() => setPeriod(days)}
+                >
+                  {days} dias
+                </Button>
+              ))}
             </div>
           </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-50">
-                    <Users className="h-5 w-5 text-blue-600" />
+          {/* Big Numbers — 4 cards em grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {bigNumberItems.map((item) => (
+              <Card key={item.label}>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${item.iconBg}`}>
+                      <item.icon className={`h-6 w-6 ${item.iconColor}`} />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-(--color-secondary)">
+                        {item.value}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">{item.label}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Funcionários</p>
-                    <p className="text-2xl font-bold text-(--color-secondary)">
-                      {kpis.activeEmployees}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-50">
-                    <Calendar className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Agend. Mês</p>
-                    <p className="text-2xl font-bold text-(--color-secondary)">
-                      {kpis.appointmentsThisMonth}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-50">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Concluídos</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {kpis.completedThisMonth}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-yellow-50">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Pendentes</p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {kpis.pendingThisMonth}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-red-50">
-                    <XCircle className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Ausências</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      {kpis.noShowRate}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-teal-50">
-                    <TrendingUp className="h-5 w-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Utilização</p>
-                    <p className="text-2xl font-bold text-teal-600">
-                      {kpis.utilizationRate}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          {/* Timeline Chart */}
-          {timeline.length > 0 && (
-            <Card>
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Chart 1: Agendamentos por Dia (Barras Empilhadas) */}
+            <Card className="xl:col-span-2">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-(--color-accent)" />
-                  Agendamentos por Mês (últimos 6 meses)
+                <CardTitle>
+                  Agendamentos por Dia — Últimos {period} dias
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-end gap-3 h-40">
-                  {timeline.map((item) => (
-                    <div
-                      key={item.month}
-                      className="flex-1 flex flex-col items-center"
-                    >
-                      <span className="text-xs font-semibold text-gray-700 mb-1">
-                        {item.total}
-                      </span>
-                      <div
-                        className="w-full bg-(--color-accent) rounded-t-md transition-all duration-500 min-h-[4px]"
-                        style={{
-                          height: `${(item.total / maxTimelineTotal) * 100}%`,
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={appointmentsChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11 }}
+                        interval={period > 15 ? 2 : 0}
+                        angle={period > 15 ? -45 : 0}
+                        textAnchor={period > 15 ? "end" : "middle"}
+                        height={period > 15 ? 60 : 30}
+                      />
+                      <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "1px solid #e5e7eb",
+                        }}
+                        labelFormatter={(label) => `Data: ${label}`}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="completed"
+                        name="Concluídos"
+                        stackId="a"
+                        fill="#22c55e"
+                        radius={[0, 0, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="cancelled"
+                        name="Cancelados"
+                        stackId="a"
+                        fill="#ef4444"
+                      />
+                      <Bar
+                        dataKey="scheduled"
+                        name="Agendados"
+                        stackId="a"
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Chart 2: Acessos Diários */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Acessos Diários — Últimos {period} dias</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={accessesChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11 }}
+                        interval={period > 15 ? 2 : 0}
+                        angle={period > 15 ? -45 : 0}
+                        textAnchor={period > 15 ? "end" : "middle"}
+                        height={period > 15 ? 60 : 30}
+                      />
+                      <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "1px solid #e5e7eb",
+                        }}
+                        labelFormatter={(label) => `Data: ${label}`}
+                      />
+                      <Bar
+                        dataKey="accesses"
+                        name="Acessos"
+                        fill="#8b5cf6"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Chart 3: Taxa de Conversão Diária */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Taxa de Conversão — Últimos {period} dias</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={conversionChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11 }}
+                        interval={period > 15 ? 2 : 0}
+                        angle={period > 15 ? -45 : 0}
+                        textAnchor={period > 15 ? "end" : "middle"}
+                        height={period > 15 ? 60 : 30}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12 }}
+                        unit="%"
+                        domain={[0, "auto"]}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "1px solid #e5e7eb",
+                        }}
+                        labelFormatter={(label) => `Data: ${label}`}
+                        formatter={(value: number, name: string) => {
+                          if (name === "Taxa") return [`${value}%`, name];
+                          return [value, name];
                         }}
                       />
-                      <span className="text-xs text-gray-500 mt-2">
-                        {formatMonthLabel(item.month)}
-                      </span>
-                    </div>
-                  ))}
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="rate"
+                        name="Taxa"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Por Programa */}
-            {byProgram.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-orange-500" />
-                    Agendamentos por Programa
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {byProgram.map((item) => (
-                      <div
-                        key={item.programId}
-                        className="flex items-center gap-3"
-                      >
-                        <span className="text-sm text-gray-700 w-32 truncate">
-                          {item.programName}
-                        </span>
-                        <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
-                          <div
-                            className="bg-orange-500 h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${(item.count / maxProgramCount) * 100}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-sm font-semibold text-gray-700 w-8 text-right">
-                          {item.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Por Localização */}
-            {byLocation.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-green-500" />
-                    Utilização por Localização
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {byLocation.map((item) => (
-                      <div
-                        key={item.locationId}
-                        className="flex items-center gap-3"
-                      >
-                        <span className="text-sm text-gray-700 w-32 truncate">
-                          {item.locationName}
-                        </span>
-                        <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
-                          <div
-                            className="bg-green-500 h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${(item.count / maxLocationCount) * 100}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-sm font-semibold text-gray-700 w-8 text-right">
-                          {item.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Usuários */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-blue-500" />
-                  Top Funcionários do Mês
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {topUsers.length > 0 ? (
-                  <div className="space-y-3">
-                    {topUsers.map((item, idx) => (
-                      <div
-                        key={item.employee.id}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-gray-400 w-6">
-                            #{idx + 1}
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium text-(--color-secondary)">
-                              {item.employee.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {item.employee.email}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant="info">{item.count} sessões</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    Nenhuma atividade registrada este mês
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Atividade Recente */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-purple-500" />
-                  Atividade Recente
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentActivity.length > 0 ? (
-                  <div className="space-y-2">
-                    {recentActivity.slice(0, 7).map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() =>
-                          router.push(`/admin/appointments/${item.id}`)
-                        }
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-(--color-secondary) truncate">
-                            {item.employee.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(item.startAt)} •{" "}
-                            {formatTime(item.startAt)} • {item.program.name}
-                          </p>
-                        </div>
-                        <Badge variant={getStatusVariant(item.status)}>
-                          {getStatusLabel(item.status)}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    Nenhuma atividade recente
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Stats Footer */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => router.push("/admin/settings")}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Localizações</p>
-                    <p className="text-xl font-bold text-(--color-secondary)">
-                      {kpis.totalLocations}
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-gray-400" />
-              </CardContent>
-            </Card>
-
-            <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => router.push("/admin/programs")}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Package className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Programas Ativos</p>
-                    <p className="text-xl font-bold text-(--color-secondary)">
-                      {kpis.totalPrograms}
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-gray-400" />
-              </CardContent>
-            </Card>
-
-            <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => router.push("/admin/availability")}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <UserCog className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Terapeutas</p>
-                    <p className="text-xl font-bold text-(--color-secondary)">
-                      {kpis.totalTherapists}
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-gray-400" />
               </CardContent>
             </Card>
           </div>

@@ -25,7 +25,6 @@ export default function EditTenantPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [name, setName] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
 
   const fetchTenant = useCallback(async () => {
     setLoading(true);
@@ -34,7 +33,6 @@ export default function EditTenantPage() {
       const data = await res.json();
       if (data.success) {
         setName(data.data.name);
-        setLogoUrl(data.data.logoUrl || "");
       } else {
         setNotFound(true);
       }
@@ -53,8 +51,6 @@ export default function EditTenantPage() {
     const newErrors: Record<string, string> = {};
     if (!name.trim() || name.length < 2)
       newErrors.name = "O nome deve ter pelo menos 2 caracteres";
-    if (logoUrl && !/^https?:\/\/.+/.test(logoUrl))
-      newErrors.logoUrl = "URL inválida";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -69,7 +65,6 @@ export default function EditTenantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          logoUrl: logoUrl.trim() || undefined,
         }),
       });
 
@@ -154,25 +149,6 @@ export default function EditTenantPage() {
                     });
                   },
                   placeholder: "Nome da empresa",
-                }}
-              />
-
-              <FormField
-                type="input"
-                label="URL do Logo"
-                error={errors.logoUrl}
-                helpText="URL da imagem do logo (opcional)"
-                inputProps={{
-                  value: logoUrl,
-                  onChange: (e) => {
-                    setLogoUrl(e.target.value);
-                    setErrors((prev) => {
-                      const next = { ...prev };
-                      delete next.logoUrl;
-                      return next;
-                    });
-                  },
-                  placeholder: "https://exemplo.com/logo.png",
                 }}
               />
             </div>

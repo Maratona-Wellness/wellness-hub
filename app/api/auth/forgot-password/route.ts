@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
 import {
+  checkExistingAccount,
   createPasswordResetToken,
   logAuthAttempt,
   sendEmail,
@@ -37,6 +38,26 @@ export async function POST(
 
     const { email } = validation.data;
     const normalizedEmail = email.toLowerCase();
+
+    // Verificar se conta existe e está inativa
+    const existingAccount = await checkExistingAccount(normalizedEmail);
+    if (existingAccount.exists && !existingAccount.active) {
+      await logAuthAttempt({
+        method: "PASSWORD",
+        outcome: "FAILURE",
+        reason: `Inactive account attempted password reset: ${normalizedEmail}`,
+        ip,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Sua conta está inativa. Entre em contato com o RH da sua empresa.",
+          code: "ACCOUNT_INACTIVE",
+        },
+        { status: 403 },
+      );
+    }
 
     // Gerar token de reset (retorna null se email não existe — mas não revelamos isso)
     const result = await createPasswordResetToken(normalizedEmail);

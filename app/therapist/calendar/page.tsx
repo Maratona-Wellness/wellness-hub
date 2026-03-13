@@ -416,7 +416,7 @@ export default function TherapistCalendarPage() {
               {/* Calendar Navigation */}
               <Card>
                 <CardContent className="pt-4">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col xl:flex-row items-center justify-between gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -439,7 +439,7 @@ export default function TherapistCalendarPage() {
                         {getPeriodLabel()}
                       </Text>
                     </div>
-                    <div className="flex border rounded-md overflow-hidden">
+                    <div className="flex border rounded-md overflow-hidden shrink-0">
                       {(["day", "week", "month"] as ViewType[]).map((v) => (
                         <button
                           key={v}
@@ -675,7 +675,7 @@ function MonthView({
             return (
               <div
                 key={di}
-                className={`min-h-[80px] p-1 border-r last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`min-h-20 p-1 border-r last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors ${
                   !isCurrentMonth ? "bg-gray-50" : ""
                 }`}
                 onClick={() => onClickDay(dateKey)}
@@ -755,7 +755,7 @@ function WeekView({
           >
             <div className="flex items-center gap-3 mb-2">
               <div
-                className={`text-sm font-semibold min-w-[100px] ${
+                className={`text-sm font-semibold min-w-25 ${
                   isToday ? "text-(--color-accent)" : "text-gray-700"
                 }`}
               >
@@ -783,7 +783,7 @@ function WeekView({
                         className={`flex items-center gap-3 px-3 py-2 rounded-md border-l-3 cursor-pointer hover:shadow-sm transition-shadow ${getStatusColor(appt.status)}`}
                         onClick={() => onClickAppointment(appt.id)}
                       >
-                        <div className="text-sm font-mono font-medium min-w-[90px]">
+                        <div className="text-sm font-mono font-medium min-w-22.5">
                           {formatTime(appt.startAt)} - {formatTime(appt.endAt)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -847,7 +847,7 @@ function DayView({
           className={`flex items-start gap-4 p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${getStatusColor(appt.status)}`}
           onClick={() => onClickAppointment(appt.id)}
         >
-          <div className="text-center min-w-[60px]">
+          <div className="text-center min-w-15">
             <div className="text-lg font-bold">{formatTime(appt.startAt)}</div>
             <div className="text-xs text-gray-500">
               {formatTime(appt.endAt)}

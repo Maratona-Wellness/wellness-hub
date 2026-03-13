@@ -43,6 +43,7 @@ interface TenantDetails {
   createdAt: string;
   updatedAt: string;
   locations: LocationItem[];
+  admins: AdminItem[];
   stats: {
     totalEmployees: number;
     totalLocations: number;
@@ -51,6 +52,14 @@ interface TenantDetails {
     activeTherapists: number;
     utilizationRate: number;
   };
+}
+
+interface AdminItem {
+  id: string;
+  name: string;
+  email: string;
+  active: boolean;
+  createdAt: string;
 }
 
 interface LocationItem {
@@ -437,6 +446,53 @@ export default function TenantDetailsPage() {
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "admins",
+      label: "Administradores",
+      content: (
+        <div className="space-y-4 pt-4">
+          <Text variant="h4">
+            Administradores ({tenant.admins?.length || 0})
+          </Text>
+          {!tenant.admins || tenant.admins.length === 0 ? (
+            <EmptyState
+              icon={<Users />}
+              title="Nenhum administrador cadastrado"
+              description="Administradores são criados no wizard de criação do tenant"
+            />
+          ) : (
+            <div className="space-y-3">
+              {tenant.admins.map((admin) => (
+                <Card key={admin.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-50">
+                        <UserCog className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-(--color-secondary)">
+                          {admin.name}
+                        </p>
+                        <p className="text-sm text-gray-500">{admin.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant={admin.active ? "success" : "error"}>
+                        {admin.active ? "Ativo" : "Inativo"}
+                      </Badge>
+                      <span className="text-xs text-gray-400">
+                        Desde{" "}
+                        {new Date(admin.createdAt).toLocaleDateString("pt-BR")}
+                      </span>
                     </div>
                   </div>
                 </Card>

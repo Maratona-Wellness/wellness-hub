@@ -19,6 +19,7 @@ import Link from "next/link";
 import { magicLinkRequestSchema } from "@/lib/validations/auth";
 
 type FormState = "idle" | "loading" | "sent" | "error";
+type ErrorCode = "ACCOUNT_EXISTS" | null;
 
 export default function SignupPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [errorCode, setErrorCode] = useState<ErrorCode>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [tenantName, setTenantName] = useState("");
   const [countdown, setCountdown] = useState(0);
@@ -46,6 +48,7 @@ export default function SignupPage() {
     e.preventDefault();
     setFieldErrors({});
     setErrorMessage("");
+    setErrorCode(null);
 
     // Validação com Zod
     const validation = magicLinkRequestSchema.safeParse({ email });
@@ -75,6 +78,9 @@ export default function SignupPage() {
       if (!response.ok) {
         setFormState("error");
         setErrorMessage(data.error || "Erro ao enviar código de verificação.");
+        if (data.code === "ACCOUNT_EXISTS") {
+          setErrorCode("ACCOUNT_EXISTS");
+        }
         return;
       }
 
@@ -227,7 +233,19 @@ export default function SignupPage() {
         <CardContent>
           {formState === "error" && errorMessage && (
             <Alert variant="error" className="mb-4">
-              {errorMessage}
+              <div>
+                {errorMessage}
+                {errorCode === "ACCOUNT_EXISTS" && (
+                  <div className="mt-2">
+                    <Link
+                      href="/login"
+                      className="text-(--color-accent) hover:underline font-medium"
+                    >
+                      Ir para login →
+                    </Link>
+                  </div>
+                )}
+              </div>
             </Alert>
           )}
 

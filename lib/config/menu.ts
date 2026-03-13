@@ -31,11 +31,6 @@ export const menuConfig: Record<RoleType, MenuItem[]> = {
   // Menu para funcionários (agendamento de sessões)
   EMPLOYEE: [
     {
-      label: "Home",
-      href: "/dashboard",
-      icon: Home,
-    },
-    {
       label: "Meus Agendamentos",
       href: "/appointments",
       icon: Calendar,
@@ -54,11 +49,6 @@ export const menuConfig: Record<RoleType, MenuItem[]> = {
 
   // Menu para terapeutas (gestão de agenda e atendimentos)
   THERAPIST: [
-    {
-      label: "Home",
-      href: "/dashboard",
-      icon: Home,
-    },
     {
       label: "Calendário",
       href: "/therapist/calendar",
@@ -90,13 +80,8 @@ export const menuConfig: Record<RoleType, MenuItem[]> = {
   TENANT_ADMIN: [
     {
       label: "Dashboard",
-      href: "/dashboard",
+      href: "/admin/dashboard",
       icon: Home,
-    },
-    {
-      label: "Agendamentos",
-      href: "/admin/appointments",
-      icon: Calendar,
     },
     {
       label: "Funcionários",
@@ -129,18 +114,13 @@ export const menuConfig: Record<RoleType, MenuItem[]> = {
   SUPER_ADMIN: [
     {
       label: "Dashboard",
-      href: "/dashboard",
+      href: "/superadmin/dashboard",
       icon: Home,
     },
     {
       label: "Empresas",
       href: "/superadmin/tenants",
       icon: Building2,
-    },
-    {
-      label: "Usuários",
-      href: "/superadmin/users",
-      icon: Users,
     },
     {
       label: "Terapeutas",
@@ -156,21 +136,6 @@ export const menuConfig: Record<RoleType, MenuItem[]> = {
       label: "Disponibilidade",
       href: "/superadmin/availability",
       icon: Clock,
-    },
-    {
-      label: "Agendamentos",
-      href: "/superadmin/appointments",
-      icon: Calendar,
-    },
-    {
-      label: "Relatórios",
-      href: "/superadmin/reports",
-      icon: BarChart3,
-    },
-    {
-      label: "Logs de Acesso",
-      href: "/superadmin/logs",
-      icon: FileText,
     },
     {
       label: "Configurações",

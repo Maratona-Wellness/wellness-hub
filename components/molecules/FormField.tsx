@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils/cn";
 type FieldType = "input" | "select" | "checkbox" | "radio" | "switch";
 
 interface BaseFormFieldProps {
-  label?: string;
+  label?: string | React.ReactNode;
   error?: string;
   helpText?: string;
   required?: boolean;

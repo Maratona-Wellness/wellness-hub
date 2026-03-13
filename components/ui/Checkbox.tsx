@@ -8,7 +8,7 @@ export interface CheckboxProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   "type"
 > {
-  label?: string;
+  label?: string | React.ReactNode;
 }
 
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
@@ -17,8 +17,14 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
-      <div className="flex items-center gap-2">
-        <div className="relative">
+      <div className="flex items-start gap-2">
+        <label
+          htmlFor={checkboxId}
+          className={cn(
+            "relative shrink-0 cursor-pointer",
+            disabled && "cursor-not-allowed",
+          )}
+        >
           <input
             type="checkbox"
             id={checkboxId}
@@ -30,8 +36,8 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           <div
             className={cn(
               "h-5 w-5 rounded border-2 border-gray-300 bg-white transition-colors",
-              "peer-checked:bg-[var(--color-accent)] peer-checked:border-[var(--color-accent)]",
-              "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-accent)] peer-focus-visible:ring-offset-2",
+              "peer-checked:bg-(--color-accent) peer-checked:border-(--color-accent)",
+              "peer-focus-visible:ring-2 peer-focus-visible:ring-(--color-accent) peer-focus-visible:ring-offset-2",
               "peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
               "cursor-pointer",
               disabled && "cursor-not-allowed",
@@ -46,12 +52,12 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
               strokeWidth={3}
             />
           </div>
-        </div>
+        </label>
         {label && (
           <label
             htmlFor={checkboxId}
             className={cn(
-              "text-sm text-[var(--color-secondary)] cursor-pointer select-none",
+              "text-sm text-(--color-secondary) cursor-pointer select-none pt-0.5",
               disabled && "cursor-not-allowed opacity-50",
             )}
           >

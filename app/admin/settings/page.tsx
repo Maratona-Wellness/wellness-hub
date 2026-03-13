@@ -49,7 +49,6 @@ export default function TenantAdminSettingsPage() {
 
   // Editable fields
   const [name, setName] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -61,7 +60,6 @@ export default function TenantAdminSettingsPage() {
       if (data.success) {
         setSettings(data.data);
         setName(data.data.name);
-        setLogoUrl(data.data.logoUrl || "");
       } else {
         addToast("error", "Erro ao carregar configurações");
       }
@@ -79,17 +77,14 @@ export default function TenantAdminSettingsPage() {
   useEffect(() => {
     if (settings) {
       const nameChanged = name !== settings.name;
-      const logoChanged = logoUrl !== (settings.logoUrl || "");
-      setHasChanges(nameChanged || logoChanged);
+      setHasChanges(nameChanged);
     }
-  }, [name, logoUrl, settings]);
+  }, [name, settings]);
 
   const handleSave = async () => {
     const newErrors: Record<string, string> = {};
     if (!name.trim() || name.length < 2)
       newErrors.name = "O nome deve ter pelo menos 2 caracteres";
-    if (logoUrl && !/^https?:\/\/.+/.test(logoUrl))
-      newErrors.logoUrl = "URL inválida";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -104,7 +99,6 @@ export default function TenantAdminSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          logoUrl: logoUrl.trim() || undefined,
         }),
       });
 
@@ -180,25 +174,6 @@ export default function TenantAdminSettingsPage() {
                       });
                     },
                     placeholder: "Nome da empresa",
-                  }}
-                />
-
-                <FormField
-                  type="input"
-                  label="URL do Logo"
-                  error={errors.logoUrl}
-                  helpText="URL da imagem do logo da empresa (opcional)"
-                  inputProps={{
-                    value: logoUrl,
-                    onChange: (e) => {
-                      setLogoUrl(e.target.value);
-                      setErrors((prev) => {
-                        const next = { ...prev };
-                        delete next.logoUrl;
-                        return next;
-                      });
-                    },
-                    placeholder: "https://exemplo.com/logo.png",
                   }}
                 />
 

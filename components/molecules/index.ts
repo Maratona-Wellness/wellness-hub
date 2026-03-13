@@ -9,6 +9,13 @@ export {
   CardFooter,
   type CardProps,
 } from "./Card";
+export {
+  DataTable,
+  type DataTableProps,
+  type DataTableColumn,
+  type SortDirection,
+  type SortState,
+} from "./DataTable";
 export { DatePicker, type DatePickerProps } from "./DatePicker";
 export { Dropdown, type DropdownProps, type DropdownOption } from "./Dropdown";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
