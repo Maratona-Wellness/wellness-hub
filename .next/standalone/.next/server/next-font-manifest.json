@@ -1,0 +1,133 @@
+{
+  "app": {
+    "[project]/app/_not-found/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/admin/availability/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/admin/dashboard/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/admin/employees/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/admin/programs/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/admin/reports/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/admin/settings/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/appointments/[id]/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/appointments/new/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/appointments/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/components-showcase/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/dashboard/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/employee/dashboard/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/forgot-password/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/layouts-showcase/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/login/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/molecules-showcase/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/profile/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/reset-password/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/signup/complete/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/signup/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/signup/verify/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/availability/generate/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/availability/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/dashboard/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/logs/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/programs/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/settings/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/tenants/[id]/edit/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/tenants/[id]/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/tenants/new/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/tenants/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/therapists/[id]/edit/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/therapists/[id]/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/therapists/new/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/superadmin/therapists/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/therapist/appointments/[id]/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/therapist/availability/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/therapist/calendar/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/therapist/daily/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/therapist/history/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ],
+    "[project]/app/therapist/profile/page": [
+      "static/media/b5893709a5ec98ee-s.p.54ba130b.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

@@ -1,0 +1,3 @@
+{
+  "/api/admin/therapists/[id]/toggle-status/route": "app/api/admin/therapists/[id]/toggle-status/route.js"
+}

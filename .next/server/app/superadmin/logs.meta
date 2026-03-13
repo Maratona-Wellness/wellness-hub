@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/superadmin/layout,_N_T_/superadmin/logs/layout,_N_T_/superadmin/logs/page,_N_T_/superadmin/logs"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/superadmin/logs/__PAGE__",
+    "/superadmin/logs",
+    "/superadmin",
+    "/_index",
+    "/_head"
+  ]
+}

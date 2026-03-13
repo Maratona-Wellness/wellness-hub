@@ -363,7 +363,8 @@ export default function TenantAdminDashboardPage() {
                           border: "1px solid #e5e7eb",
                         }}
                         labelFormatter={(label) => `Data: ${label}`}
-                        formatter={(value: number, name: string) => {
+                        formatter={(value, name) => {
+                          if (value === undefined) return ["-", name];
                           if (name === "Taxa") return [`${value}%`, name];
                           return [value, name];
                         }}

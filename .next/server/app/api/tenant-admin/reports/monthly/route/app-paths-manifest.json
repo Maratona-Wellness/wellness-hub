@@ -1,0 +1,3 @@
+{
+  "/api/tenant-admin/reports/monthly/route": "app/api/tenant-admin/reports/monthly/route.js"
+}

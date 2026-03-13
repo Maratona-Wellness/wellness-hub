@@ -178,7 +178,7 @@ export default function ProgramsPage() {
   const openEditModal = (program: ProgramListItem) => {
     setFormData({
       name: program.name,
-      tenantId: program.tenantId,
+      tenantId: program.tenantId || "",
       sessionDurationMinutes: program.sessionDurationMinutes,
       dayStart: program.dayStart,
       dayEnd: program.dayEnd,

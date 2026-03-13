@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/therapist/layout,_N_T_/therapist/history/layout,_N_T_/therapist/history/page,_N_T_/therapist/history"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/therapist/history/__PAGE__",
+    "/therapist/history",
+    "/therapist",
+    "/_index",
+    "/_head"
+  ]
+}

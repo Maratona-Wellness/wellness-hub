@@ -45,7 +45,7 @@ export class ProgramServiceError extends Error {
 export async function listPrograms(query: ListProgramsQuery): Promise<
   PaginatedResponse<{
     id: string;
-    tenantId: string;
+    tenantId: string | null;
     name: string;
     sessionDurationMinutes: number;
     dayStart: string;
@@ -54,7 +54,7 @@ export async function listPrograms(query: ListProgramsQuery): Promise<
     active: boolean;
     createdAt: Date;
     updatedAt: Date;
-    tenant: { id: string; name: string; domain: string };
+    tenant: { id: string; name: string; domain: string } | null;
     _count: {
       availabilitySlots: number;
       appointments: number;

@@ -29,7 +29,7 @@ export type AuthenticatedHandler = (
 export function requireAuth(handler: AuthenticatedHandler) {
   return async (
     request: NextRequest,
-    context: { params: Record<string, string> },
+    context: { params: Promise<Record<string, string>> },
   ) => {
     try {
       const session = await getServerSession(authOptions);
@@ -41,8 +41,11 @@ export function requireAuth(handler: AuthenticatedHandler) {
         );
       }
 
+      // Resolve params promise (Next.js 15+)
+      const params = await context.params;
+
       return handler(request, {
-        params: context.params,
+        params,
         user: {
           id: session.user.id,
           email: session.user.email,

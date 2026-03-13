@@ -1,0 +1,3 @@
+{
+  "/api/tenants/resolve-domain/route": "app/api/tenants/resolve-domain/route.js"
+}

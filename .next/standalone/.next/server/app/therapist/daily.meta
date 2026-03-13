@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/therapist/layout,_N_T_/therapist/daily/layout,_N_T_/therapist/daily/page,_N_T_/therapist/daily"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/therapist/daily/__PAGE__",
+    "/therapist/daily",
+    "/therapist",
+    "/_index",
+    "/_head"
+  ]
+}

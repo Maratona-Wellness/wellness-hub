@@ -101,7 +101,7 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
           {props.type === "checkbox" && (
             <Checkbox
               {...props.checkboxProps}
-              label={label}
+              label={typeof label === "string" ? label : undefined}
               required={required}
               aria-invalid={!!error}
               aria-describedby={
@@ -117,7 +117,7 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
           {props.type === "radio" && (
             <Radio
               {...props.radioProps}
-              label={label}
+              label={typeof label === "string" ? label : undefined}
               required={required}
               aria-invalid={!!error}
               aria-describedby={
@@ -133,7 +133,7 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
           {props.type === "switch" && (
             <Switch
               {...props.switchProps}
-              label={label}
+              label={typeof label === "string" ? label : undefined}
               required={required}
               aria-invalid={!!error}
               aria-describedby={

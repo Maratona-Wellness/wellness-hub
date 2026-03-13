@@ -1,0 +1,10 @@
+var R=require("../../../../../../chunks/[turbopack]_runtime.js")("server/app/api/therapist/appointments/[id]/check-in/route.js")
+R.c("server/chunks/[root-of-the-server]__2b056288._.js")
+R.c("server/chunks/node_modules_next_f2da0d3e._.js")
+R.c("server/chunks/[root-of-the-server]__db6f35e1._.js")
+R.c("server/chunks/[root-of-the-server]__24f8fcd9._.js")
+R.c("server/chunks/[root-of-the-server]__99305fc4._.js")
+R.c("server/chunks/node_modules_zod_v4_index_4dacdf73.js")
+R.c("server/chunks/ce889_server_app_api_therapist_appointments_[id]_check-in_route_actions_3b54f60b.js")
+R.m(11435)
+module.exports=R.m(11435).exports
